@@ -1,0 +1,4 @@
+-cp src
+-main test.Test
+-D analyzer-optimize
+-js bin/test.js
