@@ -8,7 +8,7 @@ import nvd.p.Parse;
 class Test {
 	static function main(){
 		var d1 = h("DIV", {
-			cls: "red some"
+			className: "red some"
 		}, [
 			h("a[href= 'javascript: void(0)', title = haha][class='hehe']", "link 1"),
 			h("br"),

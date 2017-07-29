@@ -32,10 +32,6 @@ abstract Prop(Dynamic<Any>) from Dynamic<Any> to Dynamic<Any> {
 	inline function get_html(): String return this.html;
 	inline function set_html(v: String): String return this.html = v;
 
-	public var cls(get, set): String;
-	inline function get_cls(): String return this.cls;
-	inline function set_cls(v: String): String return this.cls = v;
-
 	public var style(get, set): haxe.DynamicAccess<Any>;
 	inline function get_style():haxe.DynamicAccess<Any> return this.style;
 	inline function set_style(v: haxe.DynamicAccess<Any>):haxe.DynamicAccess<Any> return this.style = v;
@@ -45,7 +41,6 @@ abstract Prop(Dynamic<Any>) from Dynamic<Any> to Dynamic<Any> {
 			switch (k) {
 			case "text": text_update(dom);
 			case "style": style_update(dom);
-			case "cls": if (cls != null) dom.className = get(k);
 			default:
 				Reflect.setField(dom, k, get(k));
 			}
