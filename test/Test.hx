@@ -1,11 +1,10 @@
 package test;
 
 import js.Browser.document;
-import nvd.VNode;
-import nvd.VNode.h;
+import Nvd.h;
 
 class Test {
-	static function main(){
+	static function main() {
 		var d1 = h("DIV", {
 			className: "red some"
 		}, [

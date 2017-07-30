@@ -5,7 +5,7 @@ import nvd.p.CharValid.*;
 class AttrParse {
 	var cls: Array<String>;
 
-	public var attr(default, null): Attr;
+	public var attr(default, null): haxe.DynamicAccess<String>;
 
 	public inline function empty() {
 		return attr == null || attr.keys().length == 0;
@@ -13,16 +13,11 @@ class AttrParse {
 
 	public function new(s: String, i: Int, max: Int) {
 		if (i < max) {
-			attr = new Attr();
+			attr = {};
 			rec(s, i, max);
 			if (cls != null) attr.set("class", cls.join(" "));
 			//log();
 		}
-	}
-
-	public inline function destory() {
-		cls = null;
-		attr = null;
 	}
 
 	@:dce inline function log(){
