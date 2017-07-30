@@ -10,7 +10,6 @@ import nvd.p.CharValid.*;
 
 class VNode {
 #if !macro
-	public var dom: DOMElement;
 	public var name: String;
 	public var prop: Prop;
 	public var attr: Attr;
@@ -49,23 +48,27 @@ class VNode {
 
 	public function create(): DOMElement {
 		var d = document.createElement(name);
-		update(d, true);
+		if (subslen(subs) > 3) {
+			var f = document.createDocumentFragment();
+			f.appendChild(d);
+		}
+		update(d);
 		return d;
 	}
 
 	public function destory() {
-		dom = null;
+		if (subs != null) {
+			for (i in 0...subs.length) {
+				subs[i].destory();
+			}
+		}
 		prop = null;
 		attr = null;
 		subs = null;
 	}
 
-	public inline function refresh() update(this.dom, true);
-
-	public function update(dom: DOMElement, top: Bool): Bool {
-		if (dom == null) dom = this.dom;
+	public function update(dom: DOMElement): Bool {
 		if (dom == null || dom.tagName != this.name) return false;
-		this.dom = dom;
 		if (subs != null) {
 			var sd: DOMElement = null;
 			var sv: VNode = null;
@@ -77,14 +80,14 @@ class VNode {
 					sd = cast dom.childNodes[i];
 					if (sd == null) {
 						sd = cast document.createElement(sv.name);
-						sv.update(sd, true);
+						sv.update(sd);
 						dom.appendChild(sd);
 					} else {
 						if (sd.tagName == sv.name) {
-							sv.update(sd, true);
+							sv.update(sd);
 						} else {
 							var fd = cast document.createElement(sv.name);
-							sv.update(fd, true);
+							sv.update(fd);
 							dom.insertBefore(fd, sd);
 							dom.appendChild(sd); // move to the end
 						}
@@ -98,24 +101,12 @@ class VNode {
 					dom.removeChild(dom.lastChild);
 				}
 			} else {
-				if (top) { // use fragment
-					var frags = document.createDocumentFragment();
-					while (i < len) {
-						sv = this.subs[i];
-						sd = document.createElement(sv.name);
-						frags.appendChild(sd);
-						sv.update(sd, false);
-					++ i;
-					}
-					dom.appendChild(frags);
-				} else {
-					while (i < len) {
-						sv = this.subs[i];
-						sd = document.createElement(sv.name);
-						sv.update(sd, false);
-						dom.appendChild(sd);
-					++ i;
-					}
+				while (i < len) {
+					sv = this.subs[i];
+					sd = document.createElement(sv.name);
+					dom.appendChild(sd);
+					sv.update(sd);
+				++ i;
 				}
 			}
 		}
@@ -125,7 +116,7 @@ class VNode {
 	}
 
 	static function subslen(subs: Array<VNode>): Int {
-		var len = subs.length;
+		var len = subs != null ? subs.length : 0;
 		var sub: VNode;
 		for	(i in 0...len) {
 			sub = subs[i];

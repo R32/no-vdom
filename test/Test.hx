@@ -3,7 +3,6 @@ package test;
 import js.Browser.document;
 import nvd.VNode;
 import nvd.VNode.h;
-import nvd.p.Parse;
 
 class Test {
 	static function main(){
@@ -19,6 +18,7 @@ class Test {
 			h("br[]"),
 			h("a[href='#']", "link 3"),
 		]);
+		var d1d = d1.create();
 
 		var d2 = h("input", {
 		}, "input test");
@@ -28,12 +28,11 @@ class Test {
 				d1.subs[0] = h("span", "tag span");
 				d1.subs[2].prop.text = "span " + Std.int(Math.random() * 100);
 				haxe.Timer.measure(function(){
-					d1.refresh();
+					d1.update(d1d);
 				});
 			}
 		}, "click");
-
-		document.body.appendChild(d1.create());
+		document.body.appendChild(d1d);
 		document.body.appendChild(d2.create());
 		document.body.appendChild(d3.create());
 	}
