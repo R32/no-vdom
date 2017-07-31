@@ -105,32 +105,17 @@ class VNode {
 		}
 		return len;
 	}
-
-	public static var textContent = untyped __js__("'textContent' in document.documentElement") ? "textContent" : "innerText";
 }
 
-@:dce abstract Attr(Dynamic<String>) from Dynamic<String> to Dynamic<String> {
+@:forward(get, set, exists, remove, keys)
+@:dce abstract Attr(haxe.DynamicAccess<String>) from Dynamic<String> to Dynamic<String> {
 
 	public inline function new() this = {};
 
-	public inline function get(key: String):String {
-		return untyped this[key];
-	}
-
-	public inline function set(key: String, value: String):String {
-		return untyped this[key] = value;
-	}
-
-	public inline function exists(key):Bool return Reflect.hasField(this, key);
-
-	public inline function remove(key):Bool return Reflect.deleteField(this, key);
-
-	public inline function keys():Array<String> return Reflect.fields(this);
-
 	public inline function update(dom: js.html.DOMElement) {
 		var v: String;
-		for (k in keys()) {
-			v = get(k);
+		for (k in this.keys()) {
+			v = this.get(k);
 			if (v == null)
 				dom.removeAttribute(k);
 			else if (dom.getAttribute(k) != v)
@@ -139,93 +124,34 @@ class VNode {
 	}
 }
 
-@:dce abstract Prop(Dynamic<Any>) from Dynamic<Any> to Dynamic<Any> {
+@:forward(get, set, exists, remove, keys)
+@:dce abstract Prop(haxe.DynamicAccess<Any>) from Dynamic<Any> to Dynamic<Any> {
 
 	public inline function new() this = {};
 
-	public inline function get(key: String):Null<Any> {
-		return untyped this[key];
-	}
-
-	public inline function set(key: String, value: Any):Null<Any> {
-		return untyped this[key] = value;
-	}
-
-	@:resolve inline function resolve(key: String): Null<Any> {
-		return untyped this[key];
-	}
-
-	public inline function exists(key):Bool return Reflect.hasField(this, key);
-
-	public inline function remove(key):Bool return Reflect.deleteField(this, key);
-
-	public inline function keys():Array<String> return Reflect.fields(this);
-
 	public var text(get, set): String;
-	inline function get_text(): String return this.text;
-	inline function set_text(v: String): String return this.text = v;
+	inline function get_text(): String return this.get("text");
+	inline function set_text(v: String): String return this.set("text", v);
 
 	public var html(get, set): String;
-	inline function get_html(): String return this.html;
-	inline function set_html(v: String): String return this.html = v;
+	inline function get_html(): String return this.get("html");
+	inline function set_html(v: String): String return this.set("html", v);
 
 	public var style(get, set): haxe.DynamicAccess<Any>;
-	inline function get_style():haxe.DynamicAccess<Any> return this.style;
-	inline function set_style(v: haxe.DynamicAccess<Any>):haxe.DynamicAccess<Any> return this.style = v;
+	inline function get_style():haxe.DynamicAccess<Any> return this.get("style");
+	inline function set_style(v: haxe.DynamicAccess<Any>):haxe.DynamicAccess<Any> return this.set("style", v);
 
 	public inline function update(dom: DOMElement) {
-		for (k in Reflect.fields(this)) {
+		for (k in this.keys()) {
 			switch (k) {
-			case "text": text_update(dom);
-			case "style": style_update(dom);
+			case "text": if (text != null) DOMTools.set_text(dom, text);
+			case "html": if (html != null && dom.innerHTML != html) dom.innerHTML = html;
+			case "style": DOMTools.set_style(dom, style);
 			default:
-				Reflect.setField(dom, k, get(k));
+				var value = this.get(k);
+				if (Reflect.field(dom, k) != value)
+					Reflect.setField(dom, k, this.get(k));
 			}
-		}
-	}
-
-	inline function text_update(dom: DOMElement) {
-		if (text != null) {
-			switch (dom.tagName) {
-			case "INPUT":
-				(cast dom).value = text;
-			case "OPTION":
-				(cast dom).text = text;
-			case "SELECT":
-				var select: js.html.SelectElement = cast dom;
-				if ((cast select.options[select.selectedIndex]).text != text) {
-					for (i in 0...select.options.length) {
-						if ((cast select.options[i]).text == text) {
-							select.selectedIndex = i;
-							break;
-						}
-					}
-				}
-			default:
-				if (Reflect.field(dom, VNode.textContent) != text)
-					Reflect.setField(dom, VNode.textContent, text);
-			}
-		}
-	}
-
-	inline function style_update(dom: DOMElement) {
-		if (style == null) return;
-		var vst = style;
-		for (sk in vst.keys()) {
-			switch (sk) {
-			case "opacity":
-				if (VNode.textContent == "innerText") {// if browser below IE9
-					var f: Float = vst.get("opacity");
-					Reflect.setField(dom.style, "filter", 'progid:DXImageTransform.Microsoft.Alpha(Opacity=${Std.int(f * 100)})');
-					//Reflect.setField(dom.style, "filter", 'alpha(opacity=${Std.int(f * 100)})');
-					//Reflect.setField(dom.style, "zoom", 1);
-					continue;
-				}
-			default:
-			}
-			var sv = vst.get(sk);
-			if (Reflect.field(dom.style, sk) != sv)
-				Reflect.setField(dom.style, sk, sv);
 		}
 	}
 }
