@@ -1,6 +1,7 @@
 package nvd.p;
 
-import nvd.p.CharValid.*;
+import nvd.p.CValid.*;
+using StringTools;
 
 class Range {
 
@@ -12,9 +13,8 @@ class Range {
 		right = r;
 	}
 
-	public function union(r2: Range) {
-		left = Utils.imin(left, r2.left);
-		right = Utils.imax(right, r2.right);
+	public inline function toString() {
+		return '[L: $left, R: $right]';
 	}
 
 	public function substr(str: String, trim = true) {
@@ -29,7 +29,7 @@ class Range {
 
 	public static function ltrim(text: String, max: Int, begin = 0): Int {
 		while (begin < max) {
-			if (is_space(text.charCodeAt(begin))) {
+			if (is_space(text.fastCodeAt(begin))) {
 				++ begin;
 			} else {
 				break;
@@ -38,9 +38,9 @@ class Range {
 		return begin;
 	}
 
-	public static function rtrim(text: String, last: Int, left: Int): Int {
+	public static function rtrim(text: String, last: Int, left = 0): Int {
 		while (last >= left) {
-			if (is_space(text.charCodeAt(last))) {
+			if (is_space(text.fastCodeAt(last))) {
 				-- last;
 			} else {
 				break;
@@ -49,10 +49,10 @@ class Range {
 		return last + 1;
 	}
 
-	public static function index(text: String, sl: String, sr: String, begin = 0, outer = true, rr = -1):Range {
+	public static function index(text: String, sl: String, sr: String, begin = 0, outer = true):Range {
 		var left = text.indexOf(sl, begin);
 		if (left > -1) {
-			var right = rr != -1 ? text.lastIndexOf(sr, rr) : text.indexOf(sr, left + sl.length);
+			var right = text.indexOf(sr, left + sl.length);
 			if (right > left) {
 				if (outer) {
 					right += sr.length;
@@ -64,9 +64,9 @@ class Range {
 		}
 		return null;
 	}
-	// 下列方法未测试
-	public static function indexOf(text: String, sub: String, begin = 0, outer = true, rr = -1):Range {
-		var right = rr != -1 ? text.lastIndexOf(sub, rr) : text.indexOf(sub, begin);
+
+	public static function indexOf(text: String, sub: String, begin = 0, outer = true):Range {
+		var right = text.indexOf(sub, begin);
 		if (right > begin) {
 			if (outer) right += sub.length;
 			return new Range(begin, right);
@@ -74,14 +74,31 @@ class Range {
 		return null;
 	}
 
-	public static function until(text: String, begin = 0, callb: Int->Bool): Range {
-		var max = text.length;
+	public static function until(text: String, begin: Int, max: Int, callb: Int->Bool): Range {
 		var i = begin;
 		while (i < max) {
-			if (!callb(text.charCodeAt(i))) break;
+			if (!callb(text.fastCodeAt(i))) break;
 			++ i;
 		}
 		if (i > begin) return new Range(begin, i);
 		return null;
+	}
+
+	public static function ident(text: String, begin: Int, max: Int, firstChar: Int->Bool, restChar: Int -> Bool): Range {
+		var r: Range = null;
+		if (begin < max) {
+			var i = begin;
+			var c = text.fastCodeAt(i++);
+			if (!firstChar(c)) return r;
+			while (i < max) {
+				c = text.fastCodeAt(i);
+				if (restChar(c))
+					++i;
+				else
+					break;
+			}
+			if (i > begin) r = new Range(begin, i);
+		}
+		return r;
 	}
 }

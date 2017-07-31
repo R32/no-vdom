@@ -5,7 +5,8 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import nvd.p.Range;
 import nvd.p.AttrParse;
-import nvd.p.CharValid.*;
+import nvd.p.CValid.*;
+using StringTools;
 #end
 
 class Nvd {
@@ -25,11 +26,12 @@ class Nvd {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			var name: String;
-			var r = Range.until(s, 0, is_validchar);
+			var r = Range.ident(s, 0, s.length, is_alpha_u, is_anumx);
+			if (r == null) Context.error('Invalid TagName: "$s"', e.pos);
 			if (r.left == 0 && r.right == s.length) {
 				name = s.toUpperCase();
 			} else {
-				name = r.substr(s).toUpperCase();
+				name = r.substr(s, false).toUpperCase();
 				var ap = new AttrParse(s, r.right, s.length);
 				for (k in ap.attr.keys()) {
 					Reflect.setField(attr, k, ap.attr.get(k));

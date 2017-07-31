@@ -1,6 +1,7 @@
 package nvd.p;
 
-import nvd.p.CharValid.*;
+import nvd.p.CValid.*;
+using StringTools;
 
 class AttrParse {
 	var cls: Array<String>;
@@ -30,64 +31,38 @@ class AttrParse {
 
 	function rec(s: String, left: Int, max: Int): Void {
 		if ((left + 1) >= max) return;
-		var c = s.charCodeAt(left++);
+		var c = s.fastCodeAt(left++);
 		var r: Range = null;
 		switch (c) {
 		case "[".code:
 			p_attr(s, left, max);
 		case "#".code: // id
-			r = r_ident(s, left, max, true);
+			r = Range.ident(s, left, max, is_alpha_u, is_anum);
 			if (r != null) {
-				attr.set("id", r.substr(s));
+				attr.set("id", r.substr(s, false));
 				rec(s, r.right, max);
 			}
 		case ".".code: // class
-			r = r_ident(s, left, max, true);
+			r = Range.ident(s, left, max, is_alpha_u, is_anum);
 			if (r != null) {
 				if (this.cls == null) this.cls = [];
-				this.cls.push(r.substr(s));
+				this.cls.push(r.substr(s, false));
 				rec(s, r.right, max);
 			}
 		default:
 		}
 	}
 
-	// do not include "ltrim"
-	function r_ident(s: String, left: Int, max: Int, first: Bool): Range {
-		var r: Range = null;
-		if (left < max) {
-			var i = left;
-			var c: Int;
-			if (first) {
-				c = s.charCodeAt(i++);
-				if (is_alpha(c) || c == "_".code) {
-				} else {
-					return r;
-				}
-			}
-
-			while (i < max) {
-				c = s.charCodeAt(i);
-				if (is_alpha(c) || is_number(c) || c == "-".code || c == "_".code)
-					++i;
-				else
-					break;
-			}
-			if (i > left) r = new Range(left, i);
-		}
-		return r;
-	}
-
 	function p_attr(s: String, left: Int, max: Int) {
 		left = Range.ltrim(s, max, left);
-		var rk = r_ident(s, left, max, true);
+		var rk = Range.ident(s, left, max, is_attr_first, is_anumx);
 		if (rk == null) return;
 
 		var rv: Range = null;
 		var next = false;
 		left = Range.ltrim(s, max, rk.right);
 		while (left < max) {
-			switch (s.charCodeAt(left++)) {
+			switch (s.fastCodeAt(left++)) {
 			case "=".code: // string
 				rv = r_string(s, left, max);
 				if (rv == null) return; // TODO: error???.
@@ -113,18 +88,22 @@ class AttrParse {
 
 	function r_string(s: String, left: Int, max: Int): Range {
 		var r: Range = null;
+		left = Range.ltrim(s, max, left);
 		if (left < max) {
-			left = Range.ltrim(s, max, left);
-			var c = s.charCodeAt(left++);
+			var c = s.fastCodeAt(left++);
 			switch (c) {
 			case '"'.code:
-				r = Range.until(s, left, function(c) { return c != '"'.code; } );
+				r = Range.until(s, left, max, function(c) { return c != '"'.code; } ); // Note: next is '"'
 			case "'".code:
-				r = Range.until(s, left, function(c) { return c != "'".code; } );
+				r = Range.until(s, left, max, function(c) { return c != "'".code; } );
 			default:
-				r = r_ident(s, left - 1, max, false);
+				r = Range.ident(s, left - 1, max, is_alpha_u, is_anum);
 			}
 		}
 		return r;
+	}
+
+	inline function is_attr_first(c) {
+		return is_alpha_u(c) || c == ":".code;
 	}
 }
