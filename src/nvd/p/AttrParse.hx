@@ -94,8 +94,10 @@ class AttrParse {
 			switch (c) {
 			case '"'.code:
 				r = Range.until(s, left, max, function(c) { return c != '"'.code; } ); // Note: next is '"'
+				if (r == null && s.fastCodeAt(left) == '"'.code) r = new Range(left, left);
 			case "'".code:
 				r = Range.until(s, left, max, function(c) { return c != "'".code; } );
+				if (r == null && s.fastCodeAt(left) == "'".code) r = new Range(left, left);
 			default:
 				r = Range.ident(s, left - 1, max, is_alpha_u, is_anum);
 			}
