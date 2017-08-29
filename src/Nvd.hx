@@ -28,7 +28,7 @@ class Nvd {
 				name = s.toUpperCase();
 			} else {
 				name = s.substr(0, p).toUpperCase();
-				nvd.p.PAttr.run(s, p, s.length, attr, []);
+				nvd.p.PAttr.run(s, p, s.length, attr);
 			}
 			macro $v{name};
 		case EConst(CIdent(i)):

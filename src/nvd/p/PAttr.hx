@@ -4,7 +4,8 @@ import csss.CValid.*;
 
 class PAttr {
 
-	public static function run(s: String, pos: Int, max: Int, attr: haxe.DynamicAccess<String>, classes: Array<String>): Void {
+	public static function run(s: String, pos: Int, max: Int, attr: haxe.DynamicAccess<String>): Void {
+		var classes = [];
 		inline function char(p) return StringTools.fastCodeAt(s, p);
 		inline function charAt(p) return s.charAt(p);
 
