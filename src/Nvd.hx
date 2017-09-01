@@ -9,16 +9,15 @@ import csss.CValid.*;
 class Nvd {
 	macro public static function h(exprs: Array<Expr>) {
 		var vattr = {};
-		var name = parse(exprs[0], vattr);
-		var attr = Reflect.fields(vattr).length == 0 ? macro null : macro $v { vattr };
+		var name = attrParse(exprs[0], vattr);
+		var attr = Reflect.fields(vattr).length == 0 ? macro null : macro $v{ vattr };
 		var ret = [name, attr];
 		for (i in 1...exprs.length) ret.push(exprs[i]);
-		return macro new nvd.VNode($a{ret});
+		return macro nvd.DOMTools.make($a{ret});
 	}
 
-
 #if macro
-	static function parse(e: Expr, attr): Expr {
+	static function attrParse(e: Expr, attr): Expr {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			var name: String;
