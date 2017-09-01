@@ -13,9 +13,8 @@ class Nvd {
 		var attr = Reflect.fields(vattr).length == 0 ? macro null : macro $v{ vattr };
 		var ret = [name, attr];
 		for (i in 1...exprs.length) ret.push(exprs[i]);
-		return macro nvd.DOMTools.make($a{ret});
+		return macro nvd.Dt.make($a{ret});
 	}
-
 #if macro
 	static function attrParse(e: Expr, attr): Expr {
 		return switch (e.expr) {

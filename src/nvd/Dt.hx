@@ -3,13 +3,11 @@ package nvd;
 import js.html.DOMElement;
 import js.Browser.document;
 
-class DOMTools {
+class Dt {
 
 	public static function make(name: String, a: Attr, p: Prop = null, dyn: Dynamic = null):DOMElement {
 		var dom = document.createElement(name);
-
 		if (a != null) a.update(dom);
-
 		if (dyn != null) {
 			if (Std.is(dyn, String)) {
 				if (p == null) p = new Prop();
@@ -27,9 +25,7 @@ class DOMTools {
 				}
 			}
 		}
-
 		if (p != null) p.update(dom);
-
 		return dom;
 	}
 
@@ -142,9 +138,9 @@ class DOMTools {
 	public inline function update(dom: DOMElement) {
 		for (k in this.keys()) {
 			switch (k) {
-			case "text": if (text != null) DOMTools.set_text(dom, text);
+			case "text": if (text != null) Dt.set_text(dom, text);
 			case "html": if (html != null && dom.innerHTML != html) dom.innerHTML = html;
-			case "style": DOMTools.set_style(dom, style);
+			case "style": Dt.set_style(dom, style);
 			default:
 				var value = this.get(k);
 				if (Reflect.field(dom, k) != value)

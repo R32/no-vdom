@@ -37,7 +37,7 @@ class NvdTest {
 			onclick: function(e) {
 				var t0 = haxe.Timer.stamp();
 				d1.replaceChild(h("span", "tag span"), d1.children[0]);
-				nvd.DOMTools.set_text(d1.children[2], "span " + Std.int(Math.random() * 100));
+				nvd.Dt.set_text(d1.children[2], "span " + Std.int(Math.random() * 100));
 				trace(haxe.Timer.stamp() - t0);
 			}
 		}, "click");
