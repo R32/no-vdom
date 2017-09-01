@@ -3,18 +3,18 @@ package test;
 import js.Browser.document;
 import Nvd.h;
 
-class Test {
+class NvdTest {
 	static function main() {
-		var d1 = h("DIV", {
+		var d1 = h("div", {
 			className: "red some"
 		}, [
-			h("a[href= 'javascript: void(0)', title = haha][class='hehe']", "link 1"),
+			h("a[href= 'javascript: void(0)'][title = haha][class='hehe']", "link 1"),
 			h("br"),
 			h("span[title='span span span'][href='#']#hehe.aaa.d-c", { style: {
 				opacity: 0.35,
 				display: "inline-block", // IE8 opacity bug?
 			}}, "span 2"),
-			h("br[]"),
+			h("br"),
 			h("a[href='#']", "link 3"),
 		]);
 		var d1d = d1.create();

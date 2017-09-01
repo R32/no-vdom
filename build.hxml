@@ -1,4 +1,9 @@
+-dce full
 -cp src
--main test.Test
+-main test.NvdTest
+-lib csss
+-debug
+-D nodejs
 -D analyzer-optimize
+-D old-error-format
 -js bin/test.js

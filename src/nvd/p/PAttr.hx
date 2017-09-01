@@ -15,7 +15,7 @@ class PAttr {
 			switch (c) {
 			case "[".code:
 				pos = on_attr(s, pos, max, attr);
-				if (pos == -1) throw "Invalid Attribute";
+				if (pos == -1) throw 'Invalid Attribute on "$s"';
 			case "#".code:
 				pos = ident(s, left, max, is_alpha_u, is_anum);
 				if (pos == left) throw "Invalid Char " + charAt(pos);

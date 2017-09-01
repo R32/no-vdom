@@ -3,6 +3,7 @@ package nvd;
 import js.Browser.document;
 import js.html.DOMElement;
 
+//@:deprecated
 class VNode {
 	public var name: String;
 	public var prop: Prop;
@@ -48,6 +49,7 @@ class VNode {
 		subs = null;
 	}
 
+	// TODO: ERROR.. 没有正确处理 #text 或其它非元素类型节点.
 	public function update(dom: DOMElement): Bool {
 		if (dom == null || dom.tagName != this.name) return false;
 		if (subs != null) {
@@ -55,19 +57,19 @@ class VNode {
 			var sv: VNode = null;
 			var i = 0;
 			var len = subs.length;
-			if (dom.hasChildNodes()) {
+			if (dom.children.length > 0) {
 				while (i < len) {
 					sv = subs[i];
-					sd = cast dom.childNodes[i];
+					sd = dom.children[i];
 					if (sd == null) {
-						sd = cast document.createElement(sv.name);
+						sd = document.createElement(sv.name);
 						sv.update(sd);
 						dom.appendChild(sd);
 					} else {
 						if (sd.tagName == sv.name) {
 							sv.update(sd);
 						} else {
-							var fd = cast document.createElement(sv.name);
+							var fd = document.createElement(sv.name);
 							sv.update(fd);
 							dom.insertBefore(fd, sd);
 							dom.appendChild(sd); // move to the end
@@ -76,10 +78,11 @@ class VNode {
 				++ i;
 				}
 				// remove the extra
-				while (dom.childNodes.length > len) {
+				len = dom.children.length;
+				while (i < len) {
 					// TODO: detach the event bind before removeChild
-					// TODO: skip TextNode???
-					dom.removeChild(dom.lastChild);
+					dom.removeChild(dom.children[i]);
+					++ i;
 				}
 			} else {
 				while (i < len) {
