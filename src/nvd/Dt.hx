@@ -19,7 +19,7 @@ class Dt {
 				for (v in (dyn: Array<Dynamic>)) {
 					if (Std.is(v, String)) {
 						dom.appendChild(document.createTextNode(v));
-					} else if (Std.is(v, js.html.Node)) {
+					} else { // if (Std.is(v, js.html.Node)) { // TODO: IE8 doesn't support "Node"
 						dom.appendChild(v);
 					}
 				}
@@ -39,62 +39,89 @@ class Dt {
 		return len;
 	}
 
-	public static function get_text(dom: DOMElement): String {
-		switch (dom.tagName) {
-			case "INPUT":
-				return (cast dom).value;
-			case "OPTION":
-				return (cast dom).text;
-			case "SELECT":
-				var select: js.html.SelectElement = cast dom;
-				return (cast select.options[select.selectedIndex]).text;
-			default:
-				return Reflect.field(dom, textContent);
-		}
+	public static function setAttr(dom: DOMElement, name: String, value: String): String {
+		if (value == null)
+			dom.removeAttribute(name);
+		else if (dom.getAttribute(name) != value)
+			dom.setAttribute(name, value);
+		return value;
 	}
 
-	public static function set_text(dom: DOMElement, text: String): String {
-		switch (dom.tagName) {
-		case "INPUT":
-			if ((cast dom).value != text)(cast dom).value = text;
-		case "OPTION":
-			if ((cast dom).text != text) (cast dom).text = text;
-		case "SELECT":
-			var select: js.html.SelectElement = cast dom;
-			if ((cast select.options[select.selectedIndex]).text != text) {
-				for (i in 0...select.options.length) {
-					if ((cast select.options[i]).text == text) {
-						select.selectedIndex = i;
-						break;
+	public static function getText(dom: DOMElement): String {
+		if (dom.nodeType == js.html.Node.ELEMENT_NODE) {
+			switch (dom.tagName) {
+				case "INPUT":
+					return (cast dom).value;
+				case "OPTION":
+					return (cast dom).text;
+				case "SELECT":
+					var select: js.html.SelectElement = cast dom;
+					return (cast select.options[select.selectedIndex]).text;
+				default:
+					return Reflect.field(dom, textContent);
+			}
+		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) {
+			return dom.nodeValue;
+		}
+		return null;
+	}
+
+	public static function setText(dom: DOMElement, text: String): String {
+		if (dom.nodeType == js.html.Node.ELEMENT_NODE) {
+			switch (dom.tagName) {
+			case "INPUT":
+				if ((cast dom).value != text)(cast dom).value = text;
+			case "OPTION":
+				if ((cast dom).text != text) (cast dom).text = text;
+			case "SELECT":
+				var select: js.html.SelectElement = cast dom;
+				if ((cast select.options[select.selectedIndex]).text != text) {
+					for (i in 0...select.options.length) {
+						if ((cast select.options[i]).text == text) {
+							select.selectedIndex = i;
+							break;
+						}
 					}
 				}
+			default:
+				if (Reflect.field(dom, textContent) != text)
+					Reflect.setField(dom, textContent, text);
 			}
-		default:
-			if (Reflect.field(dom, textContent) != text)
-				Reflect.setField(dom, textContent, text);
+		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) { // #text, #comment
+			dom.nodeValue = text;
 		}
 		return text;
 	}
 
-	// Note: getComputedStyle()[abc-def-ght] / currentStyle["abcDefGht"](float=>styleFloat) is too hard
-	public static function set_style(dom: DOMElement, style: haxe.DynamicAccess<Any>): Dynamic<Any> {
+	// Note: getComputedStyle()[abc-def-ght] / currentStyle["abcDefGht"]
+	public static function setStyle(dom: DOMElement, style: haxe.DynamicAccess<Any>): Dynamic<Any> {
 		if (style != null) {
+			var ie8 = textContent == "innerText"; // if browser below IE9
 			for (k in style.keys()) {
-				switch (k) {
-				case "opacity":
-					if (textContent == "innerText") { // if browser below IE9
+				if (ie8) {
+					switch (k) {
+					case "opacity":
 						var f: Float = style.get("opacity");
 						Reflect.setField(dom.style, "filter", 'progid:DXImageTransform.Microsoft.Alpha(Opacity=${Std.int(f * 100)})');
 						continue;
+					case "float":
+						k = "styleFloat";
+					default:
 					}
-				default:
-					var value = style.get(k);
-					if (Reflect.field(dom.style, k) != value)
-						Reflect.setField(dom.style, k, value);
 				}
+				var value = style.get(k);
+				if (Reflect.field(dom.style, k) != value)
+					Reflect.setField(dom.style, k, value);
 			}
 		}
 		return style;
+	}
+
+	public static function lookup(dom: DOMElement, path: Array<Int>): DOMElement {
+		for (p in path) {
+			dom = cast dom.childNodes[p];
+		}
+		return dom;
 	}
 
 	static var textContent = untyped __js__("'textContent' in document.documentElement") ? "textContent" : "innerText";
@@ -110,10 +137,7 @@ class Dt {
 		var v: String;
 		for (k in this.keys()) {
 			v = this.get(k);
-			if (v == null)
-				dom.removeAttribute(k);
-			else if (dom.getAttribute(k) != v)
-				dom.setAttribute(k, v);
+			Dt.setAttr(dom, k, v);
 		}
 	}
 }
@@ -138,9 +162,9 @@ class Dt {
 	public inline function update(dom: DOMElement) {
 		for (k in this.keys()) {
 			switch (k) {
-			case "text": if (text != null) Dt.set_text(dom, text);
+			case "text": if (text != null) Dt.setText(dom, text);
 			case "html": if (html != null && dom.innerHTML != html) dom.innerHTML = html;
-			case "style": Dt.set_style(dom, style);
+			case "style": Dt.setStyle(dom, style);
 			default:
 				var value = this.get(k);
 				if (Reflect.field(dom, k) != value)

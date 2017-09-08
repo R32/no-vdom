@@ -12,19 +12,15 @@ import Nvd.h;
 
 class Main {
     static function main() {
-        var h3 = h("h3[title='hi there!']#uniq.red", "Greeting");
-        js.Browser.document.body.appendChild(h3.create());
+        var h = h("h3[title='hi there!']#uniq.red", "Greeting");
+        js.Browser.document.body.appendChild(h);
     }
 }
 ```
 
-related js output:
 
-```js
-Main.main = function() {
-    var h3 = new nvd_VNode("H3",{ title : "hi there!", id : "uniq", 'class' : "red"}, null, "Greeting");
-    window.document.body.appendChild(h3.create());
-};
-```
+### Notes
 
+`IE <= 8` do not include white space-only text nodes in `childNodes`
 
+`IE <= 8` includes comment nodes within `children`
