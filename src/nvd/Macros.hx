@@ -9,10 +9,11 @@ import csss.xml.Xml;
 using csss.Query;
 using haxe.macro.Tools;
 
-private typedef XPP = {
+private typedef XmlCt = {
 	xml: Xml,
+	ct: ComplexType,
 	path: Array<Int>,
-	pos: Position
+	pos: haxe.macro.Position
 }
 
 private typedef FCType = {
@@ -21,14 +22,14 @@ private typedef FCType = {
 }
 
 private typedef Extra = {
-	type: ExtraType,
-	xp: XPP,
+	own: XmlCt,
 	name: String,
+	fct: ComplexType,
+	argt: ExtraArgType,
 	w: Bool,
-	ct: ComplexType,
 }
 
-@:enum private abstract ExtraType(Int) to Int {
+@:enum private abstract ExtraArgType(Int) to Int {
 	var Elem = 0;
 	var Attr = 1;
 	var Prop = 2;
@@ -60,8 +61,7 @@ class Macros {
 	// complexType
 	static var ct_dom = macro :js.html.DOMElement;
 	static var ct_str = macro :String;
-	static var ct_dyn = macro :Dynamic;
-	static var ct_map = new Map<String, ComplexType>();  // full_name => ct
+	static var ct_map = new Map<String, ComplexType>();  // full_name => ComplexType
 	static function cachedCType(t: Type): ComplexType {
 		var ret: ComplexType;
 		var name = null;
@@ -81,14 +81,14 @@ class Macros {
 	}
 
 	// for detecting whether the field can be written.
-	static var fbase: Map<String, FCType> = null;                   // field_name => FCType
-	static var fext: Map<String, Map<String, FCType>> = new Map();  // tagName => [field_name => FCType]
+	static var fdom: Map<String, FCType> = null;                        // field_name => FCType
+	static var fdom_ex: Map<String, Map<String, FCType>> = new Map();   // tagName => [field_name => FCType]
 	static function initBaseElems() {
-		if (fbase != null) return;
-		fbase = new Map();
-		fbase.set("text", { t: ct_str, w: AccNormal });             // custom prop
-		fbase.set("html", { t: ct_str, w: AccNormal } );
-		extractFVar(fbase, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
+		if (fdom != null) return;
+		fdom = new Map();
+		fdom.set("text", { t: ct_str, w: AccNormal });                  // custom prop
+		fdom.set("html", { t: ct_str, w: AccNormal } );
+		extractFVar(fdom, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 	}
 
 	// only for js.html.*Element;
@@ -117,31 +117,6 @@ class Macros {
 		}
 	}
 
-	static function vars_ct(field: String, tagname: String = null): FCType {
-		var fc = fbase.get(field);
-		if (fc == null) {
-			var name = tags.get(tagname);
-			if (name == null) {
-				name = tagname.charAt(0).toUpperCase() + tagname.substr(1).toLowerCase() + "Element";
-				tags.set(tagname, name);
-			}
-			name = "js.html." + name;
-
-			var ct = ct_map.get(name);
-			if (ct == null) {
-				var type = Context.getType(name);
-				if (type == null) {
-					ct = ct_dom;   // default is DOMElement
-				} else {
-					TODO;
-					ct = type.toComplexType();
-				}
-				ct_map.set(name, ct);
-			}
-		}
-		return fc;
-	}
-
 	static function make(el: Xml, extra: Expr, externFile: String): Array<Field> {
 		initBaseElems();
 		var pos = Context.currentPos();
@@ -151,8 +126,6 @@ class Macros {
 		default:
 			Context.error('[macro build]: Only for abstract ${cls.name}(nvd.Comp) ...', pos);
 		}
-
-		//var ct_comp= macro :nvd.Comp;
 
 		var fields = Context.getBuildFields();
 		var all_fds = new haxe.ds.StringMap<Bool>();
@@ -173,24 +146,27 @@ class Macros {
 			});
 		}
 		var ex: haxe.DynamicAccess<Extra> = {};
-		// parse Xml
-		xmlParse(el, ex);
-		// parse extras as FProp
-		exParse(el, extra, ex);
+		// TODO: parse Xml
+		//xmlParse(el, ex);
+		// parse extra args as FProp
+		argParse(el, extra, ex);
+
 		for (k in ex.keys()) {
 			var v = ex.get(k);
-			if (v.xp.xml == null) continue;
 			var aname = v.name;
-			var elook = "lookup" + v.xp.path.length;
-			var edom = v.xp.path.length < 6 // see Comp::lookup
-				? macro @:privateAccess this.$elook($a{ (v.xp.path: Array<Int>).map(function(i){return macro $v{i}}) })
-				: macro @:privateAccess this.lookup($v { v.xp.path } );
-
+			var elook = "lookup" + v.own.path.length;
+			var edom = v.own.path.length < 6 // see Comp::lookup
+				? macro @:privateAccess cast this.$elook($a{ (v.own.path: Array<Int>).map(function(i){return macro $v{i}}) })
+				: macro @:privateAccess cast this.lookup($v { v.own.path } );
+			edom = {  // same as: (cast this.lookup(): SomeElement)
+				expr: ECheckType(edom, v.own.ct),
+				pos : edom.pos
+			};
 			fields.push({
 				name: k,
 				access: [APublic],
-				kind: FProp("get", v.w == true ? "set" : "never", v.ct),
-				pos: v.xp.pos,
+				kind: FProp("get", v.w == true ? "set" : "never", v.fct),
+				pos: v.own.pos,
 			});
 
 			fields.push({   // getter
@@ -198,8 +174,8 @@ class Macros {
 				access: [APrivate, AInline],
 				kind: FFun( {
 					args: [],
-					ret: v.ct,
-					expr: switch (v.type) {
+					ret: v.fct,
+					expr: switch (v.argt) {
 					case Elem: macro return $edom;
 					case Attr: macro return $edom.getAttribute($v{ aname });
 					case Prop:
@@ -210,7 +186,7 @@ class Macros {
 						}
 					}
 				}),
-				pos: v.xp.pos,
+				pos: v.own.pos,
 			});
 
 			if (v.w) {
@@ -218,9 +194,9 @@ class Macros {
 					name: "set_" + k,
 					access: [APrivate, AInline],
 					kind: FFun({
-						args: [{name: "v", type: v.ct}],
-						ret: v.ct,
-						expr: switch (v.type) {
+						args: [{name: "v", type: v.fct}],
+						ret: v.fct,
+						expr: switch (v.argt) {
 						case Attr: macro return nvd.Dt.setAttr($edom, $v{ aname }, v);
 						case Prop:
 							switch (aname) {
@@ -228,14 +204,13 @@ class Macros {
 							case "html":  macro return $edom.innerHTML = v;
 							default:      macro return $edom.$aname = v;
 							}
-						default: throw "TODO";
+						default: throw "ERROR";
 						}
 					}),
-					pos: v.xp.pos,
+					pos: v.own.pos,
 				});
 			}
 		}
-
 
 		if (externFile != null) {
 			//Context.registerModuleDependency(cls.module, externFile);
@@ -249,18 +224,6 @@ class Macros {
 			s;
 		default:
 			Context.error("[macro build]: Expected String", e.pos);
-		}
-	}
-
-	// TODO: do not support Type Params
-	static function e2CompleType(e: Expr): ComplexType {
-		return switch (e.expr) {
-		case EConst(CIdent(n)):
-			Context.getType(n).toComplexType();
-		case EField(pack, s):
-			TPath({name: s, pack: pack.toString().split("."), params: []});
-		default:
-			Context.error("[macro build]: Unsupported type", e.pos);
 		}
 	}
 
@@ -311,14 +274,15 @@ class Macros {
 		return ret;
 	}
 
-	static function e2Query(top: Xml, e: Expr): XPP {
-		return switch (e.expr) {
+	static function xmlQuery(top: Xml, e: Expr): XmlCt {
+		var x: Xml = null;
+		var ep: Array<Int>;
+		switch (e.expr) {
 		case EConst(CString(s)):
-			var cur = top.querySelector(s);
-			if (cur == null) Context.error('Could not find: "$s" on ${top.toSimpleString()}', e.pos);
-			{xml: cur, path: getEPath(cur, top), pos: e.pos};
+			x = top.querySelector(s);
+			ep = getEPath(x, top);
 		case EArrayDecl(a):
-			var ep = [];
+			ep = [];
 			for (n in a) {
 				switch (n.expr) {
 				case EConst(CInt(i)): ep.push(Std.parseInt(i));
@@ -326,31 +290,40 @@ class Macros {
 					Context.error("[macro build]: Expected Int", n.pos);
 				}
 			}
-			{xml: ep2xml(top, ep, 0), path: ep, pos: e.pos};
+			x = ep2xml(top, ep, 0);
 		default:
 			Context.error("[macro build]: Unsupported type", e.pos);
 		}
+		if (x == null) Context.error('Could not find on ${top.toSimpleString()}', e.pos);
+		var ct = tag2ctype(x.nodeName, top.nodeName == "SVG"); // Note: this method will be extract all field ComplexType to "fdom_ex"
+		return {xml: x, ct: ct, path: ep, pos: e.pos};
 	}
 
-	static function exParse(top: Xml, extra: Expr, out:haxe.DynamicAccess<Extra>) {
+	static function argParse(top: Xml, extra: Expr, out:haxe.DynamicAccess<Extra>) {
 		switch (extra.expr) {
 		case EConst(CIdent("null")):
 		case EObjectDecl(a):
 			for (f in a) {
 				var val = f.expr;
+				var xc: XmlCt = null;
 				switch (val.expr) {
 				case ECall(fn, pa):
+					xc = xmlQuery(top, pa[0]);
 					switch (fn.expr) {
 					case EConst(CIdent("Elem")):
-						out.set(f.field, {type: Elem, xp: e2Query(top, pa[0]), name: null, w: false, ct: ct_dom});
+						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct});
 					case EConst(CIdent("Attr")):
-						out.set(f.field, {type: Attr, xp: e2Query(top, pa[0]), name: e2String(pa[1]), w: true, ct: ct_str});
+						out.set(f.field, {argt: Attr, own: xc, name: e2String(pa[1]), w: true, fct: ct_str});
 					case EConst(CIdent("Prop")):
 						var aname = e2String(pa[1]);
-						var c = fbase.get(aname);
-						if (c == null)
-							Context.error('js.html.Element has no field "$aname"', pa[1].pos);
-						out.set(f.field, {type: Prop, xp: e2Query(top, pa[0]), name: aname, w: c.w == AccNormal, ct: c.t});
+						var fc = fdom.get(aname);
+						if (fc == null) {
+							var elem = fdom_ex.get(xc.xml.nodeName);
+							if (elem != null)
+								fc = elem.get(aname);
+						}
+						if (fc == null) Context.error('js.html.Element has no field "$aname"', pa[1].pos);
+						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t});
 					default:
 						Context.error('[macro build]: Unsupported argument', fn.pos);
 					}
@@ -363,31 +336,48 @@ class Macros {
 		}
 	}
 
+	// TODO: parse template as ....
 	static function xmlParse(top: Xml, out: haxe.DynamicAccess<Extra>) {
 		for (aname in top.attributes()) {
 		}
 	}
 
-
-	static function tag2type(tagname: String): Void {
+	static function tag2mod(tagname: String, svg: Bool): String {
 		var name = tags.get(tagname);
 		if (name == null) {
 			name = tagname.charAt(0).toUpperCase() + tagname.substr(1).toLowerCase() + "Element";
+			if (svg) name = "svg." + name;
+			tags.set(tagname, name);
 		}
-		name = "js.html." + name;
-		var ct = ct_map.get(name);
-		if (ct == null) {
-			var type = Context.getType(name);
-			if (type == null) {
-				ct = ct_dom;   // default is DOMElement
-			} else {
-				trace("TODO"); // got all fields. // TagName => FCType
-				ct = type.toComplexType();
-			}
-			ct_map.set(name, ct);
-		}
-
+		return "js.html." + name;
 	}
+
+	// got ComplexType by tagName and extract it all fields...
+	static function tag2ctype(tagname: String, svg = false): ComplexType {
+		var mod = tag2mod(tagname, svg);
+		var ct = ct_map.get(mod);
+		if (ct == null) {
+			var type = Context.getType(mod);
+			if (type == null) {
+				ct = ct_dom;
+			} else {
+				if (!svg) {
+					var fc = fdom_ex.get(tagname);
+					if (fc == null) {
+						fc = new Map();
+						extractFVar(fc, type);
+						fdom_ex.set(tagname, fc);
+					}
+				} else {
+					throw "TODO: do not support svg elements for now";
+				}
+				ct = type.toComplexType();
+				ct_map.set(mod, ct);
+			}
+		}
+		return ct;
+	}
+
 	// Do not contain SVG child elements.
 	static var tags: haxe.DynamicAccess<String> = {
 		"A"          : "AnchorElement",

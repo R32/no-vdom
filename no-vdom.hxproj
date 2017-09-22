@@ -19,16 +19,16 @@
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="analyzer-optimize" />
+    <option directives="nodejs&#xA;analyzer-optimize&#xA;old-error-format" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
-    <option mainClass="test.Test" />
+    <option mainClass="test.NvdTest" />
     <option enabledebug="False" />
-    <option additional="" />
+    <option additional="-dce full&#xA;-debug " />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
-    <!-- example: <library name="..." /> -->
+    <library name="csss" />
   </haxelib>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>

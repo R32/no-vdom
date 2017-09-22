@@ -49,16 +49,16 @@ class NvdTest {
 
 		var foo = new Foo(document.querySelector("div.flex-table"));
 		console.log(foo.input);
-		console.log(foo.className);
+		console.log(foo.value);
 		console.log(foo.title);
-		foo.className = "a b c";
+		foo.value = "a b c";
 		foo.title = "Greeting";
 	}
 }
 
 @:build(Nvd.build("bin/index.html", "div.flex-table", {
 	input: Elem(".input-block"),
-	className: Prop(".input-block", "className"),
+	value: Prop(".input-block", "value"),
 	title: Attr([1, 0], "title"),
 })) abstract Foo(nvd.Comp) to nvd.Comp {
 }
