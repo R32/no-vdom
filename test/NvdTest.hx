@@ -53,6 +53,12 @@ class NvdTest {
 		console.log(foo.title);
 		foo.value = "a b c";
 		foo.title = "Greeting";
+
+		var bar: Bar = Bar.ofSelector("div.template-1");
+
+		console.log(bar.x);
+		console.log(bar.y);
+		console.log(bar.text);
 	}
 }
 
@@ -69,6 +75,7 @@ class NvdTest {
 	text:  Prop("p", "textContent"), // same as ".template-1 p".textContent
 	title: Attr("a", "title"),       // same as ".template-1 a".attribute("title")
 	cls:   Prop("a", "className"),   // same as ".template-1 a".className})) abstract Bar(nvd.Comp) to nvd.Comp {
-	x: Prop([], "offsetLeft"),       // same as ".template-1".offsetLeft}
+	x: Prop("", "offsetLeft"),       // same as ".template-1".offsetLeft}
+	y: Prop([], "offsetTop"),        // same as ".template-1".offsetTop}
 })) abstract Bar(nvd.Comp) to nvd.Comp {
 }

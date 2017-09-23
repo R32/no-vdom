@@ -121,12 +121,15 @@ class Macros {
 		initBaseElems();
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
+		var cls_path;
 		switch (cls.kind) {
-		case KAbstractImpl(_.get().type.toString() => "nvd.Comp"):
+		case KAbstractImpl(_.get() => c):
+			cls_path = {pack: c.pack, name: c.name};
+			if (c.type.toString() != "nvd.Comp")
+				Context.error('[macro build]: Only for abstract ${cls_path.name}(nvd.Comp) ...', pos);
 		default:
-			Context.error('[macro build]: Only for abstract ${cls.name}(nvd.Comp) ...', pos);
+			Context.error('[macro build]: Only for abstract type', pos);
 		}
-
 		var fields = Context.getBuildFields();
 		var all_fds = new haxe.ds.StringMap<Bool>();
 		for (f in fields) {
@@ -142,6 +145,19 @@ class Macros {
 					args: [{name: "d", type: ct_dom}],
 					ret: null,
 					expr: macro this = new nvd.Comp(d),
+				})
+			});
+		}
+		if (!all_fds.exists("ofSelector")) {
+			var enew = {expr: ENew(cls_path, [macro js.Browser.document.querySelector(s)]), pos: pos};
+			fields.push({
+				name: "ofSelector",
+				access: [APublic, AInline, AStatic],
+				pos: pos,
+				kind: FFun({
+					args: [{name: "s", type: ct_str}],
+					ret: TPath(cls_path),
+					expr: macro return $enew
 				})
 			});
 		}
@@ -279,7 +295,7 @@ class Macros {
 		var ep: Array<Int>;
 		switch (e.expr) {
 		case EConst(CString(s)):
-			x = top.querySelector(s);
+			x = s == "" ? top : top.querySelector(s);
 			ep = getEPath(x, top);
 		case EArrayDecl(a):
 			ep = [];
