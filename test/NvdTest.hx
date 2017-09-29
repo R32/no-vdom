@@ -9,6 +9,14 @@ class NvdTest {
 		var d1 = h("div", {
 			className: "red some"
 		}, [
+
+			h("label", [
+				"text node: ",
+				h("input[type=text][value='default value']")
+			]),
+
+			h("br"),
+
 			h("a[href= 'javascript: void(0)'][title = haha][class='hehe']", "link 1"),
 
 			h("br"),
@@ -59,6 +67,11 @@ class NvdTest {
 		console.log(bar.x);
 		console.log(bar.y);
 		console.log(bar.text);
+
+		var tee = Tee.create();
+		document.body.appendChild(tee);
+
+		document.body.appendChild(Bar.create());
 	}
 }
 
@@ -72,10 +85,15 @@ class NvdTest {
 
 @:build(Nvd.build("bin/index.html", "div.template-1", {
 	link:  Elem("a"),                // or Elem([1, 0]). same as ".template-1 a"
-	text:  Prop("p", "textContent"), // same as ".template-1 p".textContent
+	text:  Prop("p", "text"),        // custom prop, same as ".template-1 p".(textContent | innerText)
 	title: Attr("a", "title"),       // same as ".template-1 a".attribute("title")
 	cls:   Prop("a", "className"),   // same as ".template-1 a".className})) abstract Bar(nvd.Comp) to nvd.Comp {
 	x: Prop("", "offsetLeft"),       // same as ".template-1".offsetLeft}
 	y: Prop([], "offsetTop"),        // same as ".template-1".offsetTop}
 })) abstract Bar(nvd.Comp) to nvd.Comp {
+}
+
+@:build(Nvd.buildString('<div class="hehe hahs"><label> some thing <input type="text" value="no work!" /></label></div>', null, {
+	value: Prop("input", "value")
+})) abstract Tee(nvd.Comp) to nvd.Comp {
 }

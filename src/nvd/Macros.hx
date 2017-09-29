@@ -4,16 +4,29 @@ package nvd;
 import haxe.macro.Expr;
 import haxe.macro.Type;
 import haxe.macro.Context;
+import haxe.macro.PositionTools;
+import nvd.p.HXX;
 import csss.CValid.*;
 import csss.xml.Xml;
 using csss.Query;
 using haxe.macro.Tools;
 
+@:forward(file, min)
+private abstract XmlPos({file: String, min: Int}) from {file: String, min: Int} {
+	inline function new(o: {file: String, min: Int}) this = o;
+
+	public inline function xmlPos(p, w) return PositionTools.make({
+		file: this.file,
+		min: this.min + p,
+		max: this.min + p + w
+	});
+}
+
 private typedef XmlCt = {
 	xml: Xml,
 	ct: ComplexType,
 	path: Array<Int>,
-	pos: haxe.macro.Position
+	pos: haxe.macro.Position // pos of arg
 }
 
 private typedef FCType = {
@@ -117,7 +130,9 @@ class Macros {
 		}
 	}
 
-	static function make(el: Xml, extra: Expr, externFile: String): Array<Field> {
+	static var fpos: XmlPos;
+	static function make(el: Xml, extra: Expr, fp: XmlPos, create: Bool): Array<Field> {
+		fpos = fp;
 		initBaseElems();
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
@@ -148,6 +163,7 @@ class Macros {
 				})
 			});
 		}
+
 		if (!all_fds.exists("ofSelector")) {
 			var enew = {expr: ENew(cls_path, [macro js.Browser.document.querySelector(s)]), pos: pos};
 			fields.push({
@@ -161,9 +177,23 @@ class Macros {
 				})
 			});
 		}
+
 		var ex: haxe.DynamicAccess<Extra> = {};
 		// TODO: parse Xml
-		//xmlParse(el, ex);
+		var ecreate = xmlParse(el, ex, []);
+		if (create && !all_fds.exists("create")) {
+			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
+			fields.push({
+				name: "create",
+				access: [APublic, AInline, AStatic],
+				pos: pos,
+				kind: FFun({
+					args: [],
+					ret: TPath(cls_path),
+					expr: macro return $ecreate
+				})
+			});
+		}
 		// parse extra args as FProp
 		argParse(el, extra, ex);
 
@@ -228,8 +258,8 @@ class Macros {
 			}
 		}
 
-		if (externFile != null) {
-			//Context.registerModuleDependency(cls.module, externFile);
+		if (fpos.min == 0) { // from Nvd.build
+			Context.registerModuleDependency(cls.module, fpos.file);
 		}
 		return fields;
 	}
@@ -247,7 +277,7 @@ class Macros {
 		if (epath.length == 0) return xml;
 		var i  = 0;
 		var ei = 0;
-		var childs = @:privateAccess xml.children; // children == html::node.childNodes
+		var childs = @:privateAccess xml.children;
 		var max = childs.length;
 		var pv = epath[pi++];
 		while (i < max) {
@@ -290,13 +320,14 @@ class Macros {
 		return ret;
 	}
 
-	static function xmlQuery(top: Xml, e: Expr): XmlCt {
+	static function argXmlCt(top: Xml, e: Expr): XmlCt {
 		var x: Xml = null;
 		var ep: Array<Int>;
+		var sel: String;
 		switch (e.expr) {
 		case EConst(CString(s)):
 			x = s == "" ? top : top.querySelector(s);
-			ep = getEPath(x, top);
+			sel = s;
 		case EArrayDecl(a):
 			ep = [];
 			for (n in a) {
@@ -307,16 +338,19 @@ class Macros {
 				}
 			}
 			x = ep2xml(top, ep, 0);
+			sel = "[" + ep.join(",") + "]";
 		default:
 			Context.error("[macro build]: Unsupported type", e.pos);
 		}
-		if (x == null) Context.error('Could not find on ${top.toSimpleString()}', e.pos);
+		if (x == null) Context.error('Could not find "$sel" in ${top.toSimpleString()}', fpos.xmlPos(top.nodePos(), top.nodeName.length));
+		if (ep == null) ep = getEPath(x, top);
 		var ct = tag2ctype(x.nodeName, top.nodeName == "SVG"); // Note: this method will be extract all field ComplexType to "fdom_ex"
 		return {xml: x, ct: ct, path: ep, pos: e.pos};
 	}
 
 	static function argParse(top: Xml, extra: Expr, out:haxe.DynamicAccess<Extra>) {
 		switch (extra.expr) {
+		case EBlock([]):
 		case EConst(CIdent("null")):
 		case EObjectDecl(a):
 			for (f in a) {
@@ -324,7 +358,7 @@ class Macros {
 				var xc: XmlCt = null;
 				switch (val.expr) {
 				case ECall(fn, pa):
-					xc = xmlQuery(top, pa[0]);
+					xc = argXmlCt(top, pa[0]);
 					switch (fn.expr) {
 					case EConst(CIdent("Elem")):
 						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct});
@@ -338,7 +372,7 @@ class Macros {
 							if (elem != null)
 								fc = elem.get(aname);
 						}
-						if (fc == null) Context.error('js.html.Element has no field "$aname"', pa[1].pos);
+						if (fc == null) Context.error('${xc.xml.nodeName} has no field "$aname"', pa[1].pos);
 						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t});
 					default:
 						Context.error('[macro build]: Unsupported argument', fn.pos);
@@ -352,10 +386,61 @@ class Macros {
 		}
 	}
 
-	// TODO: parse template as ....
-	static function xmlParse(top: Xml, out: haxe.DynamicAccess<Extra>) {
-		for (aname in top.attributes()) {
+	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<Extra>, epath: Array<Int>): Expr {
+		var attr = new haxe.DynamicAccess<String>();
+
+		for (aname in xml.attributes()) {
+			if (aname.charCodeAt(0) == ":".code) continue; // It's a posInfo
+			var value = xml.get(aname);
+			var av = HXX.parse(value);
+			var ap = fpos.xmlPos(xml.attrPos(aname), value.length);
+			if (av.length > 1) Context.error("Do not supported currently", ap);
+			switch (av[0]) {
+			case Key(k):
+				var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
+				out.set(k, {own: xc, name: aname, fct: ct_str, w: true, argt: Attr });
+			case Str(s, _):
+				attr.set(aname, s);
+			}
 		}
+		var subs = macro null;
+		var children = @:privateAccess xml.children;
+		var len = children.length;
+		if (len == 1 && children[0].nodeType == PCData) {
+			var value = children[0].nodeValue;
+			var av = HXX.parse(value);
+			var ap = fpos.xmlPos(children[0].nodePos(), value.length);
+			if (av.length > 1) Context.error("Do not supported currently", ap);
+			switch (av[0]) {
+			case Key(k):
+				var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
+				out.set(k, {own: xc, name: "text", fct: ct_str, w: true, argt: Prop }); // custom prop "text"
+				subs = macro $v{k};
+			case Str(s, _):
+				subs = macro $v{s};
+			}
+		} else if(len > 0) {
+			var a = [];
+			var i = 0, j = 0;
+			while (i < len) {
+				var child = children[i];
+				var sp = epath.slice(0); // copy
+				sp.push(j);
+				if (child.nodeType == Element) {
+					a.push(xmlParse(child, out, sp));
+					++ j;
+				} else if (child.nodeType == PCData) {
+					var value = child.nodeValue;
+					if (csss.CValid.until(value, 0, value.length, csss.CValid.is_space) < value.length) // skip spaces text node
+						a.push(macro $v{value.split("\r\n").join("\n")});                               // replace "\r\n" to "\n"
+				} else {
+					Context.error("Unsupported XML Type", fpos.xmlPos(child.nodePos(), child.nodeName.length));
+				}
+				++ i;
+			}
+			subs = macro $a{a};
+		}
+		return macro nvd.Dt.make($v{xml.nodeName}, $v{attr}, null, $subs);
 	}
 
 	static function tag2mod(tagname: String, svg: Bool): String {
@@ -375,7 +460,7 @@ class Macros {
 		if (ct == null) {
 			var type = Context.getType(mod);
 			if (type == null) {
-				ct = ct_dom;
+				ct = ct_dom;  // default
 			} else {
 				if (!svg) {
 					var fc = fdom_ex.get(tagname);

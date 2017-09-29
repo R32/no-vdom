@@ -5,7 +5,7 @@ import js.Browser.document;
 
 class Dt {
 
-	public static function make(name: String, a: Attr, p: Prop = null, dyn: Dynamic = null):DOMElement {
+	@:pure public static function make(name: String, a: Attr, ?p: Prop, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (a != null) a.update(dom);
 		if (dyn != null) {

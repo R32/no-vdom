@@ -3,7 +3,7 @@ package nvd.p;
 import csss.CValid.*;
 
 enum HVal {
-	Var(k: String);
+	Key(k: String);
 	Str(s: String, isSpaces: Bool);
 }
 
@@ -14,7 +14,7 @@ enum HVal {
 
 class HXX {
 
-	public static function parse(str: String, pos: Int, max: Int): Array<HVal> {
+	public static function parse(str: String, pos = 0, max = -1): Array<HVal> {
 
 		inline function IGNORE_SPACES() pos = ignore_space(str, pos, max);
 		inline function char(p) return StringTools.fastCodeAt(str, p);
@@ -28,6 +28,7 @@ class HXX {
 
 		var ret = [];
 		var c: Int;
+		if (max == -1) max = str.length;
 		while (pos < max) {
 			switch (S) {
 			case BEGIN:
@@ -44,7 +45,7 @@ class HXX {
 				left = pos;
 				pos = ident(str, pos, max, is_alpha_u, is_anu);
 				if (pos == left) throw pos;   // InvalidChar
-				ret.push(Var(substr()));
+				ret.push(Key(substr()));
 				IGNORE_SPACES();
 				c = char(pos);
 				if (c != "}".code) throw pos; // Expected "}"
