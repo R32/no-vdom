@@ -1,10 +1,5 @@
 package;
 
-#if macro
-import haxe.macro.Expr;
-import haxe.macro.Context;
-#end
-
 class Nvd {
 	/**
 	 example:
@@ -26,7 +21,7 @@ class Nvd {
 		var ret = [name, attr];
 		if (exprs.length > 1) {
 			switch (exprs[1].expr) {
-			case EArrayDecl(_), EConst(_):
+			case haxe.macro.Expr.ExprDef.EArrayDecl(_), haxe.macro.Expr.ExprDef.EConst(_):
 				ret.push(macro null);
 				ret.push(exprs[1]);
 			default:
@@ -66,15 +61,15 @@ class Nvd {
 	public static function build(file: String, selector: String, ?extra, create = true) {
 		var root = csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement();
 		var el = csss.Query.querySelector(root, selector);
-		if (el == null) Context.error('Invalid selector or Could not find: "$selector"', extra.pos);
+		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', extra.pos);
 		return nvd.Macros.make(el, extra, {file: file, min: 0}, create);
 	}
 
-	public static function buildString(es: Expr, selector: String = null, ?extra, create = true) {
+	public static function buildString(es: haxe.macro.Expr, selector: String = null, ?extra, create = true) {
 		var s = nvd.Macros.exprString(es);
 		var root = csss.xml.Xml.parse(s).firstElement();
 		var el = selector == null || selector == "" ? root : csss.Query.querySelector(root, selector);
-		if (el == null) Context.error('Invalid selector or Could not find: "$selector"', es.pos);
+		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', es.pos);
 		var xpos = haxe.macro.PositionTools.getInfos(es.pos);
 		xpos.min += 1;  // begin at "1"
 		return nvd.Macros.make(el, extra, xpos, create);

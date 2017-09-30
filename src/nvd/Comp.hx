@@ -3,7 +3,9 @@ package nvd;
 import js.html.DOMElement;
 
 /**
- for IE8 that use children instead of childNodes.
+ `IE <= 8` do not include white space-only text nodes in `childNodes` (Use children instead of childNodes.)
+
+ `IE <= 8` includes comment nodes within `children` (Warnning in Macros build)
 */
 abstract Comp(DOMElement) to DOMElement {
 	public inline function new(d) this = d;
