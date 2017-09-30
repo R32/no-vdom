@@ -5,18 +5,8 @@ no-vdom
 
 ### Example
 
-create dom by VNode.
 
-```hx
-import Nvd.h;
-
-class Main {
-    static function main() {
-        var h = h("h3[title='hi there!']#uniq.red", "Greeting");
-        js.Browser.document.body.appendChild(h);
-    }
-}
-```
+See [example](test/NvdTest.hx)
 
 
 ### Notes
