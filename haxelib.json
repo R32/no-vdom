@@ -1,0 +1,13 @@
+{
+  "name": "no-vdom",
+  "url": "https://github.com/R32/no-vdom/",
+  "license": "MIT",
+  "tags": ["html", "vdom"],
+  "description": "TODO...",
+  "releasenote": "See https://github.com/R32/no-vdom/",
+  "version": "0.1.0",
+  "dependencies": {
+    "csss": ""
+  }
+  "contributors": ["r32"]
+}
