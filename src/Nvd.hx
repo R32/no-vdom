@@ -35,6 +35,7 @@ class Nvd {
 		}
 		return macro nvd.Dt.make($a{ret});
 	}
+
 #if macro
 	/**
 	example:
@@ -70,15 +71,12 @@ class Nvd {
 	}
 
 	public static function buildString(es: Expr, selector: String = null, ?extra, create = true) {
-		var s = switch (es.expr) {
-		case EConst(CString(str)): str;
-		default: Context.error("XML String", es.pos);
-		}
+		var s = nvd.Macros.exprString(es);
 		var root = csss.xml.Xml.parse(s).firstElement();
 		var el = selector == null || selector == "" ? root : csss.Query.querySelector(root, selector);
 		if (el == null) Context.error('Invalid selector or Could not find: "$selector"', es.pos);
 		var xpos = haxe.macro.PositionTools.getInfos(es.pos);
-		xpos.min += 1;  // begein at "1"
+		xpos.min += 1;  // begin at "1"
 		return nvd.Macros.make(el, extra, xpos, create);
 	}
 #end

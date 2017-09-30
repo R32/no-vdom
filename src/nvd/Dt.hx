@@ -3,8 +3,12 @@ package nvd;
 import js.html.DOMElement;
 import js.Browser.document;
 
-class Dt {
+/**
+DOM Tools
+*/
+@:native("dt") class Dt {
 
+	@:native("h")
 	@:pure public static function make(name: String, a: Attr, ?p: Prop, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (a != null) a.update(dom);

@@ -6,7 +6,7 @@ import haxe.macro.Type;
 import haxe.macro.Context;
 import haxe.macro.PositionTools;
 import nvd.p.HXX;
-import csss.CValid.*;
+import csss.CValid;
 import csss.xml.Xml;
 using csss.Query;
 using haxe.macro.Tools;
@@ -54,7 +54,7 @@ class Macros {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			var name: String;
-			var p = ident(s, 0, s.length, is_alpha_u, is_anumx);
+			var p = CValid.ident(s, 0, s.length, CValid.is_alpha_u, CValid.is_anumx);
 			if (p == 0) Context.error('Invalid TagName: "$s"', e.pos);
 			if (p == s.length) {
 				name = s.toUpperCase();
@@ -264,7 +264,7 @@ class Macros {
 		return fields;
 	}
 
-	static function e2String(e: Expr): String {
+	static function exprString(e: Expr): String {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			s;
@@ -273,7 +273,7 @@ class Macros {
 		}
 	}
 
-	static function ep2xml(xml: Xml, epath: Array<Int>, pi: Int): Xml {
+	static function epfind(xml: Xml, epath: Array<Int>, pi: Int): Xml {
 		if (epath.length == 0) return xml;
 		var i  = 0;
 		var ei = 0;
@@ -286,7 +286,7 @@ class Macros {
 					if (pi == epath.length)
 						return childs[i];
 					else
-						return ep2xml(childs[i], epath, pi);
+						return epfind(childs[i], epath, pi);
 				}
 				++ ei;
 			}
@@ -337,7 +337,7 @@ class Macros {
 					Context.error("[macro build]: Expected Int", n.pos);
 				}
 			}
-			x = ep2xml(top, ep, 0);
+			x = epfind(top, ep, 0);
 			sel = "[" + ep.join(",") + "]";
 		default:
 			Context.error("[macro build]: Unsupported type", e.pos);
@@ -363,9 +363,9 @@ class Macros {
 					case EConst(CIdent("Elem")):
 						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct});
 					case EConst(CIdent("Attr")):
-						out.set(f.field, {argt: Attr, own: xc, name: e2String(pa[1]), w: true, fct: ct_str});
+						out.set(f.field, {argt: Attr, own: xc, name: exprString(pa[1]), w: true, fct: ct_str});
 					case EConst(CIdent("Prop")):
-						var aname = e2String(pa[1]);
+						var aname = exprString(pa[1]);
 						var fc = fdom.get(aname);
 						if (fc == null) {
 							var elem = fdom_ex.get(xc.xml.nodeName);
@@ -388,7 +388,6 @@ class Macros {
 
 	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<Extra>, epath: Array<Int>): Expr {
 		var attr = new haxe.DynamicAccess<String>();
-
 		for (aname in xml.attributes()) {
 			if (aname.charCodeAt(0) == ":".code) continue; // It's a posInfo
 			var value = xml.get(aname);
@@ -431,8 +430,8 @@ class Macros {
 					++ j;
 				} else if (child.nodeType == PCData) {
 					var value = child.nodeValue;
-					if (csss.CValid.until(value, 0, value.length, csss.CValid.is_space) < value.length) // skip spaces text node
-						a.push(macro $v{value.split("\r\n").join("\n")});                               // replace "\r\n" to "\n"
+					if (CValid.until(value, 0, value.length, CValid.is_space) < value.length)  // skip spaces text node
+						a.push(macro $v{value.split("\r\n").join("\n")});                      // replace "\r\n" to "\n"
 				} else {
 					Context.error("Unsupported XML Type", fpos.xmlPos(child.nodePos(), child.nodeName.length));
 				}
@@ -454,7 +453,7 @@ class Macros {
 	}
 
 	// got ComplexType by tagName and extract it all fields...
-	static function tag2ctype(tagname: String, svg = false): ComplexType {
+	static function tag2ctype(tagname: String, svg = false, extract = true): ComplexType {
 		var mod = tag2mod(tagname, svg);
 		var ct = ct_map.get(mod);
 		if (ct == null) {
@@ -462,15 +461,17 @@ class Macros {
 			if (type == null) {
 				ct = ct_dom;  // default
 			} else {
-				if (!svg) {
-					var fc = fdom_ex.get(tagname);
-					if (fc == null) {
-						fc = new Map();
-						extractFVar(fc, type);
-						fdom_ex.set(tagname, fc);
+				if (extract) {
+					if (!svg) {
+						var fc = fdom_ex.get(tagname);
+						if (fc == null) {
+							fc = new Map();
+							extractFVar(fc, type);
+							fdom_ex.set(tagname, fc);
+						}
+					} else {
+						throw "TODO: do not support svg elements for now";
 					}
-				} else {
-					throw "TODO: do not support svg elements for now";
 				}
 				ct = type.toComplexType();
 				ct_map.set(mod, ct);
