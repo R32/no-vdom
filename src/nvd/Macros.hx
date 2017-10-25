@@ -417,13 +417,16 @@ class Macros {
 			var value = xml.get(aname);
 			var av = HXX.parse(value);
 			var ap = fpos.xmlPos(xml.attrPos(aname), value.length);
-			if (av.length > 1) Context.error("Do not supported currently", ap);
-			switch (av[0]) {
-			case Key(k):
-				var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
-				out.set(k, {own: xc, name: aname, fct: ct_str, w: true, argt: Attr });
-			case Str(s, _):
-				attr.set(aname, s);
+			if (av.length == 1) {
+				switch (av[0]) {
+				case Key(k):
+					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
+					out.set(k, {own: xc, name: aname, fct: ct_str, w: true, argt: Attr });
+				case Str(s, _):
+					attr.set(aname, s);
+				}
+			} else if (av.length > 1) {
+				Context.error("Do not supported currently", ap);
 			}
 		}
 		var subs = macro null;
@@ -433,14 +436,17 @@ class Macros {
 			var value = children[0].nodeValue;
 			var av = HXX.parse(value);
 			var ap = fpos.xmlPos(children[0].nodePos(), value.length);
-			if (av.length > 1) Context.error("Do not supported currently", ap);
-			switch (av[0]) {
-			case Key(k):
-				var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
-				out.set(k, {own: xc, name: "text", fct: ct_str, w: true, argt: Prop }); // custom prop "text"
-				subs = macro $v{k};
-			case Str(s, _):
-				subs = macro $v{s};
+			if (av.length == 1) {
+				switch (av[0]) {
+				case Key(k):
+					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
+					out.set(k, {own: xc, name: "text", fct: ct_str, w: true, argt: Prop }); // custom prop "text"
+					subs = macro $v{k};
+				case Str(s, _):
+					subs = macro $v{s};
+				}
+			} else if (av.length > 1) {
+				Context.error("Do not supported currently", ap);
 			}
 		} else if(len > 0) {
 			var a = [];
