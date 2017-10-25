@@ -137,11 +137,18 @@ class Macros {
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
 		var cls_path;
+		var tocomp = false;
 		switch (cls.kind) {
 		case KAbstractImpl(_.get() => c):
 			cls_path = {pack: c.pack, name: c.name};
 			if (c.type.toString() != "nvd.Comp")
 				Context.error('[macro build]: Only for abstract ${cls_path.name}(nvd.Comp) ...', pos);
+			for (a in c.to) {
+				if (a.t.toString() == "nvd.Comp") {
+					tocomp = true;
+					break;
+				}
+			}
 		default:
 			Context.error('[macro build]: Only for abstract type', pos);
 		}
@@ -160,6 +167,20 @@ class Macros {
 					args: [{name: "d", type: ct_dom}],
 					ret: null,
 					expr: macro this = new nvd.Comp(d),
+				})
+			});
+		}
+
+		if (!tocomp) {
+			fields.push({
+				name: "__to_comp",
+				access: [AInline],
+				pos: pos,
+				meta: [{name: ":to", pos: pos}],
+				kind: FFun({
+					args: [],
+					ret: macro :nvd.Comp,
+					expr: macro return this
 				})
 			});
 		}
