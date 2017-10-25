@@ -412,6 +412,7 @@ class Macros {
 
 	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<Extra>, epath: Array<Int>): Expr {
 		var attr = new haxe.DynamicAccess<String>();
+		xml.remove("id");
 		for (aname in xml.attributes()) {
 			if (aname.charCodeAt(0) == ":".code) continue; // It's a posInfo
 			var value = xml.get(aname);
