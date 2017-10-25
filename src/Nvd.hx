@@ -67,7 +67,12 @@ class Nvd {
 
 	public static function buildString(es: haxe.macro.Expr, selector: String = null, ?extra, create = true) {
 		var s = nvd.Macros.exprString(es);
-		var root = csss.xml.Xml.parse(s).firstElement();
+		var root;
+		try {
+			root = csss.xml.Xml.parse(s).firstElement();
+		} catch(err: Dynamic) {
+			haxe.macro.Context.error("Invalid Xml String", es.pos);
+		}
 		var el = selector == null || selector == "" ? root : csss.Query.querySelector(root, selector);
 		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', es.pos);
 		var xpos = haxe.macro.PositionTools.getInfos(es.pos);
