@@ -62,7 +62,11 @@ DOM Tools
 					var select: js.html.SelectElement = cast dom;
 					return (cast select.options[select.selectedIndex]).text;
 				default:
+					#if (js_es < 5)
 					return Reflect.field(dom, textContent);
+					#else
+					return dom.textContent;
+					#end
 			}
 		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) {
 			return dom.nodeValue;
@@ -74,22 +78,23 @@ DOM Tools
 		if (dom.nodeType == js.html.Node.ELEMENT_NODE) {
 			switch (dom.tagName) {
 			case "INPUT":
-				if ((cast dom).value != text)(cast dom).value = text;
+				(dom: Dynamic).value = text;
 			case "OPTION":
-				if ((cast dom).text != text) (cast dom).text = text;
+				(dom: Dynamic).text = text;
 			case "SELECT":
 				var select: js.html.SelectElement = cast dom;
-				if ((cast select.options[select.selectedIndex]).text != text) {
-					for (i in 0...select.options.length) {
-						if ((cast select.options[i]).text == text) {
-							select.selectedIndex = i;
-							break;
-						}
+				for (i in 0...select.options.length) {
+					if ((cast select.options[i]).text == text) {
+						select.selectedIndex = i;
+						break;
 					}
 				}
 			default:
-				if (Reflect.field(dom, textContent) != text)
+				#if (js_es < 5)
 					Reflect.setField(dom, textContent, text);
+				#else
+					dom.textContent = text;
+				#end
 			}
 		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) { // #text, #comment
 			dom.nodeValue = text;
@@ -100,6 +105,7 @@ DOM Tools
 	// Note: getComputedStyle()[abc-def-ght] / currentStyle["abcDefGht"]
 	public static function setStyle(dom: DOMElement, style: haxe.DynamicAccess<Any>): Dynamic<Any> {
 		if (style != null) {
+			#if (js_es < 5)
 			var ie8 = textContent == "innerText"; // if browser below IE9
 			for (k in style.keys()) {
 				if (ie8) {
@@ -113,6 +119,9 @@ DOM Tools
 					default:
 					}
 				}
+			#else
+			for (k in style.keys()) {
+			#end
 				var value = style.get(k);
 				if (Reflect.field(dom.style, k) != value)
 					Reflect.setField(dom.style, k, value);
@@ -127,8 +136,9 @@ DOM Tools
 		}
 		return dom;
 	}
-
+#if (js_es < 5)
 	static var textContent = untyped __js__("'textContent' in document.documentElement") ? "textContent" : "innerText";
+#end
 }
 
 
