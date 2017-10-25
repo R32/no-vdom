@@ -1,0 +1,7 @@
+-dce full
+-cp src
+-main Demo
+-lib no-vdom
+-D js-es=3
+-D analyzer-optimize
+-js demo.js

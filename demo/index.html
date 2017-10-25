@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>demo</title>
+  <style>
+  div.sec {
+    margin-top: 3em;
+  }
+  div.sec:first-child {
+    margin-top: 0;
+  }
+  h4 span {
+    font-weight: normal;
+    font-size: 12px;
+  }
+  </style>
+</head>
+<body>
+<h2>no-vdom</h2>
+<hr />
+<div>
+  <!--  hello world -->
+  <div class="sec t01">
+    <h4>hello world</h4>
+  </div>
+
+  <!--  Tick  -->
+  <div class="sec t02">
+    <h4>tick <span>0</span></h4>
+  </div>
+
+  <!--  TODO  -->
+  <div class="sec t03">
+    <h4>TODO</h4>
+    <form>
+        <input type="text" />
+        <input type="button" value="Add" />
+    </form>
+    <ul class="todo-list"></ul>
+  </div>
+
+</div>
+<script type="text/javascript" src="demo.js"></script>
+</body>
+</html>

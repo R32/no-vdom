@@ -5,7 +5,7 @@
   "url": "https://github.com/R32/no-vdom/",
   "license": "MIT",
   "tags": ["html", "vdom"],
-  "description": "TODO...",
+  "description": "for building HTML component...",
   "releasenote": "See https://github.com/R32/no-vdom/",
   "dependencies": {
     "csss": ""
