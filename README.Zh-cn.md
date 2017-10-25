@@ -56,7 +56,7 @@ class Demo {
 (function () { "use strict";
 var Demo = function() { };
 Demo.main = function() {
-	window.document.querySelector(".t01 h4").textContent = "你好, 世界!";
+    window.document.querySelector(".t01 h4").textContent = "你好, 世界!";
 };
 Demo.main();
 })();
@@ -84,23 +84,20 @@ Demo.main();
 
   **issue**: 目前暂时无法识别 svg 中的子元素类型（添加这些实在太累了...）
 
-* no-vdom 使用 abstract （抽象类）来定义"组件"
+* no-vdom 使用 `abstract` （抽象类）来定义"组件"
 
-  ```hx
-  abstract HelloWorld(nvd.Comp) {}
-  ```
 
-注: 这个示例在 IE8 中无法正常运行, 因为 IE8 不支持 textContent 属性, 因此 no-vdom 提供了一个 "定制" 的属性, "text",
+注: 上边示例在 IE8 中无法正常运行, 因为 IE8 不支持 textContent 属性, 因此 no-vdom 提供了一个 "定制" 的属性, "text",
 因此, 将上边组件改为下边, 并且编译时添加 "-D js-es=3"
 
 ```hx
 @:build(Nvd.build("index.html", ".t01 h4", {
-	text: Prop("", "text")
+    text: Prop("", "text")
 })) abstract HelloWorld(nvd.Comp) {
 }
 ```
 
-编译后为: 注 `dt.setText` 的实现见 [`src/nvd/Dt.hx`](src/nvd/Dt.hx?ts=4#L=77)
+编译后为: 注 `dt.setText` 的实现见 [`src/nvd/Dt.hx`](src/nvd/Dt.hx?ts=4#L77)
 
 ```js
 dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
@@ -154,7 +151,7 @@ new haxe_Timer(1000).run = function() {
 var t03 = Todo.ofSelector(".t03 form");
 t03.onclick = function() {
   var list = js.Browser.document.querySelector(".todo-list");
-  var li = Nvd.h("li", t03.value);  // 这里使用了一个简单创建元素的宏方法
+  var li = Nvd.h("li", t03.value);  // 这里使用了一个简单创建元素的快捷方法
   list.appendChild(li);
   t03.value = "";
 }
@@ -170,4 +167,4 @@ t03.children[1].onclick = function() {
 };
 ```
 
-所这些示例文件在 [demo](demo/Demo.hx) 中, To Be Continued...
+所这些示例文件在 [demo](demo/Demo.hx?ts=4) 中, To Be Continued...
