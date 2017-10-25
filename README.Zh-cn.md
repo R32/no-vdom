@@ -27,9 +27,36 @@ no-vdom
 
 ## 示例
 
-示例使用 vscode 作为 IDE. 安装了 haxe(haxe language support) 扩展.
+示例使用 vscode 作为 IDE. 下边是 html 文件的主要部分.
+
+```html
+<div>
+  <!--  hello world -->
+  <div class="sec t01">
+    <h4>hello world</h4>
+  </div>
+
+  <!--  Tick  -->
+  <div class="sec t02">
+    <h4>tick <span>0</span></h4>
+  </div>
+
+  <!--  TODO  -->
+  <div class="sec t03">
+    <h4>TODO</h4>
+    <form>
+        <input type="text" />
+        <input type="button" value="Add" />
+    </form>
+    <ul class="todo-list"></ul>
+  </div>
+</div>
+<script type="text/javascript" src="demo.js"></script>
+```
 
 ### hello world
+
+定义组件
 
 ```hx
 @:build(Nvd.build("index.html", ".t01 h4", {
@@ -38,7 +65,7 @@ no-vdom
 }
 ```
 
-Demo.hx:
+在 Demo.hx 中调用:
 
 ```hx
 class Demo {
@@ -62,7 +89,7 @@ Demo.main();
 })();
 ```
 
-回到组件语法的定义上, `@:build(file, css, def) ....`:
+回到组件的语法定义上, `@:build(file, css, def) ....`:
 
 * 第一个参数表示相对于当前项目的文件路径, 可以是任何 html 或者 xml 文件。
 
@@ -80,7 +107,7 @@ Demo.main();
 
   顺便说一下, no-vdom 能自动识别这些属性的类型, 例如: `Prop(sel, "className")` 是 String, 而 `Prop(s, "offsetLeft")` 则能自动识别为 Int 类型.
 
-  如果 no-vdom 识别不了, 在编译时将会报错, 这时很可能是你写错了，或者 mozilla 所定义的标准中不存在那个属性。
+  如果 no-vdom 识别不了, 那么在编译时将会报错, 这时很可能是你不小心写错了，或者 mozilla 所定义的标准中不存在那个属性。
 
   **issue**: 目前暂时无法识别 svg 中的子元素类型（添加这些实在太累了...）
 
@@ -97,7 +124,7 @@ Demo.main();
 }
 ```
 
-编译后为: 注 `dt.setText` 的实现见 [`src/nvd/Dt.hx`](src/nvd/Dt.hx?ts=4#L77)
+编译后为:
 
 ```js
 dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
@@ -106,6 +133,8 @@ dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
 > 看上去为一个 hello world 就已经说了这么多内容, 但这些已经是 no-vdom 的所有内容了。
 
 ### Tick
+
+组件:
 
 ```hx
 @:build(Nvd.build("index.html", ".t02 h4", {
@@ -119,6 +148,8 @@ dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
   }
 }
 ```
+
+在 hx 代码中调用:
 
 ```hx
 var t02 = Tick.ofSelector(".t02 h4");
@@ -136,7 +167,7 @@ new haxe_Timer(1000).run = function() {
 
 ### List
 
-必须得承认这个示例, 看上去不太优美。
+组件: (这个示例, 看上去不太优美。)
 
 ```hx
 // tutorial 03
@@ -146,6 +177,8 @@ new haxe_Timer(1000).run = function() {
 })) abstract Todo(nvd.Comp) {
 }
 ```
+
+在 haxe 中调用: 
 
 ```hx
 var t03 = Todo.ofSelector(".t03 form");
@@ -167,4 +200,4 @@ t03.children[1].onclick = function() {
 };
 ```
 
-所这些示例文件在 [demo](demo/Demo.hx?ts=4) 中, To Be Continued...
+所这些示例文件在 [demo](demo/Demo.hx?ts=4) 中
