@@ -349,6 +349,9 @@ class Macros {
 		case EConst(CString(s)):
 			x = s == "" ? top : top.querySelector(s);
 			sel = s;
+		case EConst(CIdent("null")):
+			x = top;
+			sel = "";
 		case EArrayDecl(a):
 			ep = [];
 			for (n in a) {
