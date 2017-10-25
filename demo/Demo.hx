@@ -7,17 +7,19 @@ class Demo {
 		// tick
 		var t02 = Tick.ofSelector(".t02 h4");
 		t02.run(new haxe.Timer(1000));
+
 		// todo list
-		var t03 = Todo.ofSelector(".t03 form");
-		t03.onclick = function() {
-			var list = js.Browser.document.querySelector(".todo-list");
-			var li = Nvd.h("li", t03.value);
-			list.appendChild(li);
-			t03.value = "";
+		var t03 = Todo.ofSelector(".t03.sec");
+		t03.btn.onclick = function() {
+			var value = t03.value;
+			if (value != "") {
+				var li = Nvd.h("li", value);
+				t03.list.appendChild(li);
+				t03.value = "";
+			}
 		}
 	}
 }
-
 
 // tutorial hello world
 @:build(Nvd.build("index.html", ".t01 h4", {
@@ -38,8 +40,8 @@ class Demo {
 }
 
 // tutorial todo list
-@:build(Nvd.build("index.html", ".t03 form", {
+@:build(Nvd.build("index.html", ".sec.t03", {
+	list: Elem(".todo-list"),
 	value: Prop("input[type=text]", "value"),
-	onclick: Prop("input[type=button]", "onclick")
-})) abstract Todo(nvd.Comp) {
-}
+	btn: Elem("input[type=button]"),
+})) abstract Todo(nvd.Comp) {}
