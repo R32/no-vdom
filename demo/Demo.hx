@@ -9,14 +9,9 @@ class Demo {
 		t02.run(new haxe.Timer(1000));
 
 		// todo list
-		var t03 = Todo.ofSelector(".t03.sec");
+		var t03 = Todo.ofSelector(".t03");
 		t03.btn.onclick = function() {
-			var value = t03.value;
-			if (value != "") {
-				var li = Nvd.h("li", value);
-				t03.list.appendChild(li);
-				t03.value = "";
-			}
+			t03.add(t03.value);
 		}
 	}
 }
@@ -40,8 +35,13 @@ class Demo {
 }
 
 // tutorial todo list
-@:build(Nvd.build("index.html", ".sec.t03", {
+@:build(Nvd.build("index.html", ".t03", {
 	list: Elem(".todo-list"),
 	value: Prop("input[type=text]", "value"),
 	btn: Elem("input[type=button]"),
-})) abstract Todo(nvd.Comp) {}
+})) abstract Todo(nvd.Comp) {
+	public inline function add(s: String) {
+		var li = Nvd.h("li", s);
+		list.appendChild(li);
+	}
+}

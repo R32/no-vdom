@@ -6,22 +6,31 @@ no-vdom
 ![screen shot](demo/demo.gif)
 
 ```hx
-@:build(Nvd.build("index.html", ".sec.t03", {
+// index.html
+//<div class="sec t03">
+//  <h4>TODO</h4>
+//  <form>
+//      <input type="text" />
+//      <input type="button" value="Add" />
+//  </form>
+//  <ul class="todo-list"></ul>
+//</div>
+@:build(Nvd.build("index.html", ".t03", {
   list: Elem(".todo-list"),
   value: Prop("input[type=text]", "value"),
   btn: Elem("input[type=button]"),
-})) abstract Todo(nvd.Comp) {}
+})) abstract Todo(nvd.Comp) {
+  public inline function add(s: String) {
+    var li = Nvd.h("li", s);
+    list.appendChild(li);
+  }
+}
 
 class Demo {
   static function main() {
     var t03 = Todo.ofSelector(".t03");
     t03.btn.onclick = function() {
-      var value = t03.value;
-      if (value != "") {
-        var li = Nvd.h("li", value);
-        t03.list.appendChild(li);
-        t03.value = "";
-      }
+      t03.add(t03.value);
     }
   }
 }

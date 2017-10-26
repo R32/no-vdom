@@ -163,11 +163,16 @@ new haxe_Timer(1000).run = function() {
 
 ```hx
 // 组件: (这个示例, 看上去不太优美。)
-@:build(Nvd.build("index.html", ".sec.t03", {
+@:build(Nvd.build("index.html", ".t03", {
   list: Elem(".todo-list"),
   value: Prop("input[type=text]", "value"),
   btn: Elem("input[type=button]"),
-})) abstract Todo(nvd.Comp) {}
+})) abstract Todo(nvd.Comp) {
+  public inline function add(s: String) {
+    var li = Nvd.h("li", s);
+    list.appendChild(li);
+  }
+}
 ```
 
 ![screen shot](demo/demo.gif)
@@ -176,24 +181,15 @@ new haxe_Timer(1000).run = function() {
 // 在 haxe 中调用:
 var t03 = Todo.ofSelector(".t03");
 t03.btn.onclick = function() {
-  var value = t03.value;
-  if (value != "") {
-    var li = Nvd.h("li", value);
-    t03.list.appendChild(li);
-    t03.value = "";
-  }
+  t03.add(t03.value);
 }
 ```
 
 ```js
 // 编译后的相关代码::
-var t03 = window.document.querySelector(".t03.sec");
+var t03 = window.document.querySelector(".t03");
 t03.children[1].children[1].onclick = function() {
-  var value = t03.children[1].children[0].value;
-  if(value != "") {
-    t03.children[2].appendChild(dt.h("LI",null,null,value));
-    t03.children[1].children[0].value = "";
-  }
+    t03.children[2].appendChild(dt.h("LI",null,null,t03.children[1].children[0].value));
 };
 ```
 
