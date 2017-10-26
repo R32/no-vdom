@@ -26,7 +26,8 @@ private typedef XmlCt = {
 	xml: Xml,
 	ct: ComplexType,
 	path: Array<Int>,
-	pos: haxe.macro.Position // pos of arg
+	pos: haxe.macro.Position, // pos of arg
+	css: String               // css selector
 }
 
 private typedef FCType = {
@@ -40,6 +41,7 @@ private typedef Extra = {
 	fct: ComplexType,
 	argt: ExtraArgType,
 	w: Bool,
+	usecss: Bool,
 }
 
 @:enum private abstract ExtraArgType(Int) to Int {
@@ -222,9 +224,14 @@ class Macros {
 			var v = ex.get(k);
 			var aname = v.name;
 			var elook = "lookup" + v.own.path.length;
-			var edom = v.own.path.length < 6 // see Comp::lookup
-				? macro @:privateAccess cast this.$elook($a{ (v.own.path: Array<Int>).map(function(i){return macro $v{i}}) })
-				: macro @:privateAccess cast this.lookup($v { v.own.path } );
+			var edom: Expr;
+			if (v.usecss && v.own.css != null) {
+				edom = macro cast this.querySelector($v{v.own.css});
+			} else {
+				edom = v.own.path.length < 6 // see Comp::lookup
+					? macro @:privateAccess cast this.$elook($a{ (v.own.path: Array<Int>).map(function(i){return macro $v{i}}) })
+					: macro @:privateAccess cast this.lookup($v{ v.own.path } );
+			}
 			edom = {  // same as: (cast this.lookup(): SomeElement)
 				expr: ECheckType(edom, v.own.ct),
 				pos : edom.pos
@@ -294,7 +301,16 @@ class Macros {
 		}
 	}
 
-	static function epfind(xml: Xml, epath: Array<Int>, pi: Int): Xml {
+	static function exprBool(e: Expr): Bool {
+		return switch (e.expr) {
+		case EConst(CIdent("true")):
+			true;
+		default:
+			false;
+		}
+	}
+
+	static function findByEPath(xml: Xml, epath: Array<Int>, pi: Int): Xml {
 		if (epath.length == 0) return xml;
 		var i  = 0;
 		var ei = 0;
@@ -307,7 +323,7 @@ class Macros {
 					if (pi == epath.length)
 						return childs[i];
 					else
-						return epfind(childs[i], epath, pi);
+						return findByEPath(childs[i], epath, pi);
 				}
 				++ ei;
 			}
@@ -345,10 +361,12 @@ class Macros {
 		var x: Xml = null;
 		var ep: Array<Int>;
 		var sel: String;
+		var css: String = null;
 		switch (e.expr) {
 		case EConst(CString(s)):
 			x = s == "" ? top : top.querySelector(s);
 			sel = s;
+			if (s != "") css = s;
 		case EConst(CIdent("null")):
 			x = top;
 			sel = "";
@@ -361,7 +379,7 @@ class Macros {
 					Context.error("[macro build]: Expected Int", n.pos);
 				}
 			}
-			x = epfind(top, ep, 0);
+			x = findByEPath(top, ep, 0);
 			sel = "[" + ep.join(",") + "]";
 		default:
 			Context.error("[macro build]: Unsupported type", e.pos);
@@ -369,7 +387,7 @@ class Macros {
 		if (x == null) Context.error('Could not find "$sel" in ${top.toSimpleString()}', fpos.xmlPos(top.nodePos(), top.nodeName.length));
 		if (ep == null) ep = getEPath(x, top);
 		var ct = tag2ctype(x.nodeName, top.nodeName == "SVG"); // Note: this method will be extract all field ComplexType to "fdom_ex"
-		return {xml: x, ct: ct, path: ep, pos: e.pos};
+		return {xml: x, ct: ct, path: ep, pos: e.pos, css: css};
 	}
 
 	static function argParse(top: Xml, extra: Expr, out:haxe.DynamicAccess<Extra>) {
@@ -385,9 +403,9 @@ class Macros {
 					xc = argXmlCt(top, pa[0]);
 					switch (fn.expr) {
 					case EConst(CIdent("Elem")):
-						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct});
+						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct, usecss: xc.css != null && pa.length > 1 && exprBool(pa[1])});
 					case EConst(CIdent("Attr")):
-						out.set(f.field, {argt: Attr, own: xc, name: exprString(pa[1]), w: true, fct: ct_str});
+						out.set(f.field, {argt: Attr, own: xc, name: exprString(pa[1]), w: true, fct: ct_str, usecss: xc.css != null && pa.length > 2 && exprBool(pa[2])});
 					case EConst(CIdent("Prop")):
 						var aname = exprString(pa[1]);
 						var fc = fdom.get(aname);
@@ -397,7 +415,7 @@ class Macros {
 								fc = elem.get(aname);
 						}
 						if (fc == null) Context.error('${xc.xml.nodeName} has no field "$aname"', pa[1].pos);
-						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t});
+						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t, usecss: xc.css != null && pa.length > 2 && exprBool(pa[2])});
 					default:
 						Context.error('[macro build]: Unsupported argument', fn.pos);
 					}
@@ -421,8 +439,8 @@ class Macros {
 			if (av.length == 1) {
 				switch (av[0]) {
 				case Key(k):
-					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
-					out.set(k, {own: xc, name: aname, fct: ct_str, w: true, argt: Attr });
+					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap, css: null};
+					out.set(k, {own: xc, name: aname, fct: ct_str, w: true, argt: Attr, usecss: false });
 				case Str(s, _):
 					attr.set(aname, s);
 				}
@@ -440,8 +458,8 @@ class Macros {
 			if (av.length == 1) {
 				switch (av[0]) {
 				case Key(k):
-					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap};
-					out.set(k, {own: xc, name: "text", fct: ct_str, w: true, argt: Prop }); // custom prop "text"
+					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap, css: null};
+					out.set(k, {own: xc, name: "text", fct: ct_str, w: true, argt: Prop, usecss: false }); // custom prop "text"
 					subs = macro $v{k};
 				case Str(s, _):
 					subs = macro $v{s};
