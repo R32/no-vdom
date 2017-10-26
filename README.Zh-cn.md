@@ -170,9 +170,11 @@ new haxe_Timer(1000).run = function() {
 })) abstract Todo(nvd.Comp) {}
 ```
 
+![screen shot](demo/demo.gif)
+
 ```hx
 // 在 haxe 中调用:
-var t03 = Todo.ofSelector(".t03.sec");
+var t03 = Todo.ofSelector(".t03");
 t03.btn.onclick = function() {
   var value = t03.value;
   if (value != "") {
