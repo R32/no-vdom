@@ -7,7 +7,7 @@ import js.html.DOMElement;
 
  `IE <= 8` includes comment nodes within `children` (Warnning in Macros build)
 */
-@:forward(querySelector)
+@:forward(querySelector, querySelectorAll)
 abstract Comp(DOMElement) to DOMElement {
 	public inline function new(d) this = d;
 	inline function lookup0(): DOMElement return this;
