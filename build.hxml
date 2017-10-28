@@ -2,7 +2,7 @@
 -cp src
 -main test.NvdTest
 -lib csss
--debug
+# -debug
 -D nodejs
 -D analyzer-optimize
 -D old-error-format

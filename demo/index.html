@@ -31,16 +31,26 @@
     <h4>tick <span>0</span></h4>
   </div>
 
-  <!--  TODO  -->
+  <!--  form  -->
   <div class="sec t03">
-    <h4>TODO</h4>
-    <form>
-        <input type="text" />
-        <input type="button" value="Add" />
-    </form>
-    <ul class="todo-list"></ul>
+    <h3>Forms</h3>
+    <div id="login" style="width: 320px; font-size: 14px">
+      <div style="clear: both">
+        <label for="name" style="float:left;">Name</label>
+        <input style="float:right" type="text" name="name" />
+      </div>
+      <div style="clear: both">
+        <label for="email" style="float:left;">Email address</label>
+        <input style="float:right" type="email" name="email">
+      </div>
+      <div style="clear: both">
+        <label style="font-size: 12px"><input type="checkbox" /> Remember me </label>
+        <label style="font-size: 12px"><input type="radio" name="herpderp" value="herp" checked="checked" /> Herp </label>
+        <label style="font-size: 12px"><input type="radio" name="herpderp" value="derp" /> Derp </label>
+        <button style="float:right" type="submit">Submit</button>
+      </div>
+    </div>
   </div>
-
 </div>
 <script type="text/javascript" src="demo.js"></script>
 </body>

@@ -129,7 +129,7 @@ dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
 
 > 看上去为一个 hello world 就已经说了这么多内容, 但这些已经是 no-vdom 的所有内容了。
 
-### Tick
+### demo-Tick
 
 ```hx
 // 组件定义:
@@ -159,18 +159,34 @@ new haxe_Timer(1000).run = function() {
 };
 ```
 
-### List
+### demo-form
 
 ```hx
 // 组件: (这个示例, 看上去不太优美。)
-@:build(Nvd.build("index.html", ".t03", {
-  list: Elem(".todo-list"),
-  value: Prop("input[type=text]", "value"),
-  btn: Elem("input[type=button]"),
-})) abstract Todo(nvd.Comp) {
-  public inline function add(s: String) {
-    var li = Nvd.h("li", s);
-    list.appendChild(li);
+@:build(Nvd.build("index.html", "#login", {
+  btn: Elem("button[type=submit]"),
+  name: Prop("input[name=name]", "value"),
+  email: Prop("input[name=email]", "value"),
+  remember: Prop("input[type=checkbox]", "checked"),
+#if (js_es >= 5)
+  // IE8 did not support the pseudo-selector ":checked"
+  // the last argument "true" is used to keep the css-selector to find in runtime
+  herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
+#end
+})) abstract LoginForm(nvd.Comp) {
+  public inline function getData() {
+  #if (js_es < 5)
+    var herpderp = null;
+    var a: Array<js.html.InputElement> = cast this.querySelectorAll("input[name=herpderp]");
+    for (r in a)
+      if (r.checked) herpderp = r.value;
+  #end
+    return {
+      name: name,
+      email: email,
+      remember: remember,
+      herpderp: herpderp,
+    }
   }
 }
 ```
@@ -179,17 +195,17 @@ new haxe_Timer(1000).run = function() {
 
 ```hx
 // 在 haxe 中调用:
-var t03 = Todo.ofSelector(".t03");
-t03.btn.onclick = function() {
-  t03.add(t03.value);
+var login = LoginForm.ofSelector("#login");
+login.btn.onclick = function() {
+  trace(login.getData());
 }
 ```
 
 ```js
 // 编译后的相关代码::
-var t03 = window.document.querySelector(".t03");
-t03.children[1].children[1].onclick = function() {
-    t03.children[2].appendChild(dt.h("LI",null,null,t03.children[1].children[0].value));
+var login = window.document.querySelector("#login");
+login.children[2].children[3].onclick = function() {
+  console.log("Demo.hx:9:",{ name : login.children[0].children[1].value, email : login.children[1].children[1].value, remember : login.children[2].children[0].children[0].checked, herpderp : login.querySelector("input[type=radio][name=herpderp]:checked").value});
 };
 ```
 

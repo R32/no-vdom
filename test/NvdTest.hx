@@ -77,7 +77,7 @@ class NvdTest {
 
 @:build(Nvd.build("bin/index.html", "div.flex-table", {
 	input: Elem(".input-block"),
-	value: Prop(".input-block", "value"),
+	value: Prop(".input-block", "value", true),
 	title: Attr([1, 0], "title"),
 })) abstract Foo(nvd.Comp) to nvd.Comp {
 }

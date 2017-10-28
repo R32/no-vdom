@@ -4,14 +4,15 @@ class Demo {
 		// hello world
 		var t01 = HelloWorld.ofSelector(".t01 h4");
 		t01.text = "你好, 世界!";
+
 		// tick
 		var t02 = Tick.ofSelector(".t02 h4");
 		t02.run(new haxe.Timer(1000));
 
-		// todo list
-		var t03 = Todo.ofSelector(".t03");
-		t03.btn.onclick = function() {
-			t03.add(t03.value);
+		// login
+		var login = LoginForm.ofSelector("#login");
+		login.btn.onclick = function() {
+			trace(login.getData());
 		}
 	}
 }
@@ -21,7 +22,6 @@ class Demo {
 	text: Prop("", "text")
 })) abstract HelloWorld(nvd.Comp) {
 }
-
 
 // tutorial tick
 @:build(Nvd.build("index.html", ".t02 h4", {
@@ -34,14 +34,30 @@ class Demo {
 	}
 }
 
-// tutorial todo list
-@:build(Nvd.build("index.html", ".t03", {
-	list: Elem(".todo-list"),
-	value: Prop("input[type=text]", "value"),
-	btn: Elem("input[type=button]"),
-})) abstract Todo(nvd.Comp) {
-	public inline function add(s: String) {
-		var li = Nvd.h("li", s);
-		list.appendChild(li);
+// form
+@:build(Nvd.build("index.html", "#login", {
+	btn: Elem("button[type=submit]"),
+	name: Prop("input[name=name]", "value"),
+	email: Prop("input[name=email]", "value"),
+	remember: Prop("input[type=checkbox]", "checked"),
+#if (js_es >= 5)
+	// IE8 did not support the pseudo-selector ":checked"
+	// the last argument "true" is used to keep the css-selector to find in runtime
+	herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
+#end
+})) abstract LoginForm(nvd.Comp) {
+	public inline function getData() {
+	#if (js_es < 5)
+		var herpderp = null;
+		var a: Array<js.html.InputElement> = cast this.querySelectorAll("input[name=herpderp]");
+		for (r in a)
+			if (r.checked) herpderp = r.value;
+	#end
+		return {
+			name: name,
+			email: email,
+			remember: remember,
+			herpderp: herpderp,
+		}
 	}
 }
