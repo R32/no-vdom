@@ -11,9 +11,7 @@ no-vdom
 
 * 编译阶段检测"组件", 并通过 IDE 定位错误的所在文件和错误.
 
-* 不依赖任何 js 库, 连 jquery 也都不需要
-
-* 浏览器支持 IE8+
+* 不依赖任何 js 库, 浏览器支持 IE8+
 
   > 编译时需要添加 `-D js-es=3`, 或者自已添加 polyfill, 例如: `Array.prototype.indexOf`
 
@@ -43,12 +41,23 @@ no-vdom
 
   <!--  TODO  -->
   <div class="sec t03">
-    <h4>TODO</h4>
-    <form>
-        <input type="text" />
-        <input type="button" value="Add" />
-    </form>
-    <ul class="todo-list"></ul>
+    <h3>Forms</h3>
+    <div id="login" style="width: 320px; font-size: 14px">
+      <div style="clear: both">
+        <label for="name" style="float:left;">Name</label>
+        <input style="float:right" type="text" name="name" />
+      </div>
+      <div style="clear: both">
+        <label for="email" style="float:left;">Email address</label>
+        <input style="float:right" type="email" name="email">
+      </div>
+      <div style="clear: both">
+        <label style="font-size: 12px"><input type="checkbox" /> Remember me </label>
+        <label style="font-size: 12px"><input type="radio" name="herpderp" value="herp" checked="checked" /> Herp </label>
+        <label style="font-size: 12px"><input type="radio" name="herpderp" value="derp" /> Derp </label>
+        <button style="float:right" type="submit">Submit</button>
+      </div>
+    </div>
   </div>
 </div>
 <script type="text/javascript" src="demo.js"></script>
