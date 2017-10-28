@@ -58,8 +58,11 @@ class Nvd {
 	t1.|
 	```
 	*/
+	static var files = new Map<String, csss.xml.Xml>();
 	public static function build(file: String, selector: String, ?extra, create = true) {
-		var root = csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement();
+		if (!files.exists(file))
+			files.set(file, csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement());
+		var root = files.get(file);
 		var el = csss.Query.querySelector(root, selector);
 		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', extra.pos);
 		return nvd.Macros.make(el, extra, {file: file, min: 0}, create);
