@@ -193,6 +193,8 @@ new haxe_Timer(1000).run = function() {
 
 ![screen shot](demo/demo.gif)
 
+![screen shot](demo/demo-2.gif)
+
 ```hx
 // 在 haxe 中调用:
 var login = LoginForm.ofSelector("#login");

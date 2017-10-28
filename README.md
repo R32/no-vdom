@@ -60,6 +60,7 @@ Component:
 
 ![screen shot](demo/demo.gif)
 
+![screen shot](demo/demo-2.gif)
 
 ```hx
 class Demo {
