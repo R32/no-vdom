@@ -2,12 +2,12 @@
 class Demo {
 	static function main() {
 		// hello world
-		var t01 = HelloWorld.ofSelector(".t01 h4");
-		t01.text = "你好, 世界!";
+		var hw = HelloWorld.ofSelector(".hello-world");
+		hw.text = "你好, 世界!";
 
 		// tick
-		var t02 = Tick.ofSelector(".t02 h4");
-		t02.run(new haxe.Timer(1000));
+		var tick = Tick.ofSelector(".tick");
+		tick.run(new haxe.Timer(1000));
 
 		// login
 		var login = LoginForm.ofSelector("#login");
@@ -18,13 +18,18 @@ class Demo {
 }
 
 // tutorial hello world
-@:build(Nvd.build("index.html", ".t01 h4", {
-	text: Prop("", "text")
+@:build(Nvd.build("index.html", ".hello-world", {
+#if (js_es < 5)
+	// IE8 does not support "textContent", so we use the custom property "text"
+	text: Prop("h4", "text"),
+#else
+	text: Prop("h4", "textContent"),
+#end
 })) abstract HelloWorld(nvd.Comp) {
 }
 
 // tutorial tick
-@:build(Nvd.build("index.html", ".t02 h4", {
+@:build(Nvd.build("index.html", ".tick", {
 	ts: Prop("span", "text")
 })) abstract Tick(nvd.Comp) {
 	public inline function run(timer) {
@@ -41,7 +46,7 @@ class Demo {
 	email: Prop("input[name=email]", "value"),
 	remember: Prop("input[type=checkbox]", "checked"),
 #if (js_es >= 5)
-	// IE8 did not support the pseudo-selector ":checked"
+	// IE8 does not support the pseudo-selector ":checked"
 	// the last argument "true" is used to keep the css-selector to find in runtime
 	herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
 #end

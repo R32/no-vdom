@@ -30,17 +30,17 @@ no-vdom
 ```html
 <div>
   <!--  hello world -->
-  <div class="sec t01">
+  <div class="sec hello-world">
     <h4>hello world</h4>
   </div>
 
   <!--  Tick  -->
-  <div class="sec t02">
-    <h4>tick <span>0</span></h4>
+  <div class="sec">
+    <h4 class="tick">tick <span>0</span></h4>
   </div>
 
-  <!--  TODO  -->
-  <div class="sec t03">
+  <!--  form  -->
+  <div class="sec">
     <h3>Forms</h3>
     <div id="login" style="width: 320px; font-size: 14px">
       <div style="clear: both">
@@ -67,8 +67,8 @@ no-vdom
 
 ```hx
 // 定义组件
-@:build(Nvd.build("index.html", ".t01 h4", {
-	text: Prop("", "textContent")
+@:build(Nvd.build("index.html", ".hello-world", {
+  text: Prop("h4", "textContent"),
 })) abstract HelloWorld(nvd.Comp) {
 }
 ```
@@ -77,8 +77,8 @@ no-vdom
 // 在 Demo.hx 中调用:
 class Demo {
   static function main() {
-    var t01 = HelloWorld.ofSelector(".t01 h4");
-    t01.text = "你好, 世界!";
+    var hw = HelloWorld.ofSelector(".hello-world");
+    hw.text = "你好, 世界!";
   }
 }
 ```
@@ -90,7 +90,7 @@ class Demo {
 (function () { "use strict";
 var Demo = function() { };
 Demo.main = function() {
-    window.document.querySelector(".t01 h4").textContent = "你好, 世界!";
+    window.document.querySelector(".hello-world").children[0].textContent = "你好, 世界!";
 };
 Demo.main();
 })();
@@ -133,7 +133,7 @@ Demo.main();
 
 ```js
 // 编译后为:
-dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
+dt.setText(window.document.querySelector(".tick"),"你好, 世界!");
 ```
 
 > 看上去为一个 hello world 就已经说了这么多内容, 但这些已经是 no-vdom 的所有内容了。
@@ -142,7 +142,7 @@ dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
 
 ```hx
 // 组件定义:
-@:build(Nvd.build("index.html", ".t02 h4", {
+@:build(Nvd.build("index.html", ".tick", {
   ts: Prop("span", "text")
 })) abstract Tick(nvd.Comp) {
   // 定义一个组件方法, 最好是 inline 类型, 这样不会生成任何与“组件”有关的代码
@@ -156,13 +156,13 @@ dt.setText(window.document.querySelector(".t01 h4"),"你好, 世界!");
 
 ```hx
 // 在 hx 代码中调用:
-var t02 = Tick.ofSelector(".t02 h4");
-t02.run(new haxe.Timer(1000));
+var tick = Tick.ofSelector(".tick");
+tick.run(new haxe.Timer(1000));
 ```
 
 ```js
 // 编译后的相关代码:
-var this1 = window.document.querySelector(".t02 h4");
+var this1 = window.document.querySelector(".tick");
 new haxe_Timer(1000).run = function() {
   dt.setText(this1.children[0],"" + (Std.parseInt(dt.getText(this1.children[0])) + 1));
 };
