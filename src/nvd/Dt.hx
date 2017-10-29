@@ -46,7 +46,7 @@ DOM Tools
 	public static function setAttr(dom: DOMElement, name: String, value: String): String {
 		if (value == null)
 			dom.removeAttribute(name);
-		else if (dom.getAttribute(name) != value)
+		else
 			dom.setAttribute(name, value);
 		return value;
 	}
@@ -102,38 +102,39 @@ DOM Tools
 		return text;
 	}
 
-	// Note: getComputedStyle()[abc-def-ght] / currentStyle["abcDefGht"]
-	public static function setStyle(dom: DOMElement, style: haxe.DynamicAccess<Any>): Dynamic<Any> {
-		if (style != null) {
-			#if (js_es < 5)
+	public static function getCss(dom: DOMElement, name: String): String {
+		if ((dom: Dynamic).currentStyle != null) {
+			return ((dom: Dynamic).currentStyle: haxe.DynamicAccess<String>)[name];
+		} else {
+			return js.Browser.window.getComputedStyle(cast dom, null).getPropertyValue(name);
+		}
+	}
+
+	public static function setStyle(dom: DOMElement, style: haxe.DynamicAccess<Any>): Void {
+		if (style == null) return;
+		#if (js_es < 5)
 			var ie8 = textContent == "innerText"; // if browser below IE9
+		#end
 			for (k in style.keys()) {
+			#if (js_es < 5)
 				if (ie8) {
 					switch (k) {
 					case "opacity":
 						var f: Float = style.get("opacity");
 						Reflect.setField(dom.style, "filter", 'progid:DXImageTransform.Microsoft.Alpha(Opacity=${Std.int(f * 100)})');
-						continue;
 					case "float":
 						k = "styleFloat";
 					default:
 					}
 				}
-			#else
-			for (k in style.keys()) {
 			#end
-				var value = style.get(k);
-				if (Reflect.field(dom.style, k) != value)
-					Reflect.setField(dom.style, k, value);
+				Reflect.setField(dom.style, k, style.get(k));
 			}
-		}
-		return style;
 	}
 
 	public static function lookup(dom: DOMElement, path: Array<Int>): DOMElement {
-		for (p in path) {
-			dom = cast dom.childNodes[p];
-		}
+		for (p in path)
+			dom = cast dom.children[p];
 		return dom;
 	}
 #if (js_es < 5)
@@ -142,7 +143,7 @@ DOM Tools
 }
 
 
-@:forward(get, set, exists, remove, keys)
+@:forward
 @:dce private abstract Attr(haxe.DynamicAccess<String>) from Dynamic<String> to Dynamic<String> {
 
 	public inline function new() this = {};
@@ -156,7 +157,7 @@ DOM Tools
 	}
 }
 
-@:forward(get, set, exists, remove, keys)
+@:forward
 @:dce private abstract Prop(haxe.DynamicAccess<Any>) from Dynamic<Any> to Dynamic<Any> {
 
 	public inline function new() this = {};
