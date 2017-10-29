@@ -48,6 +48,7 @@ private typedef Extra = {
 	var Elem = 0;
 	var Attr = 1;
 	var Prop = 2;
+	var Style = 3;
 }
 
 @:allow(Nvd)
@@ -98,12 +99,16 @@ class Macros {
 	// for detecting whether the field can be written.
 	static var fdom: Map<String, FCType> = null;                        // field_name => FCType
 	static var fdom_ex: Map<String, Map<String, FCType>> = new Map();   // tagName => [field_name => FCType]
+	static var fstyle: Map<String, FCType> = null;                      // css => FCType
 	static function initBaseElems() {
 		if (fdom != null) return;
 		fdom = new Map();
 		fdom.set("text", { t: ct_str, w: AccNormal });                  // custom prop
 		fdom.set("html", { t: ct_str, w: AccNormal } );
 		extractFVar(fdom, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
+
+		fstyle = new Map();
+		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), null);
 	}
 
 	// only for js.html.*Element;
@@ -121,7 +126,7 @@ class Macros {
 					default:
 					}
 				}
-				if (c.superClass != null && c.superClass.t.toString() != stop) {
+				if (stop != null && c.superClass != null && c.superClass.t.toString() != stop) {
 					c = c.superClass.t.get();
 				} else {
 					break;
@@ -258,6 +263,7 @@ class Macros {
 						case "html": macro return $edom.innerHTML;
 						default:     macro return $edom.$aname;
 						}
+					case Style: macro return $edom.style.$aname;  // return nvd.Dt.getCss($edom, $v{aname})???
 					}
 				}),
 				pos: v.own.pos,
@@ -274,10 +280,11 @@ class Macros {
 						case Attr: macro return nvd.Dt.setAttr($edom, $v{ aname }, v);
 						case Prop:
 							switch (aname) {
-							case "text":  macro return nvd.Dt.setText($edom, v);
-							case "html":  macro return $edom.innerHTML = v;
-							default:      macro return $edom.$aname = v;
+							case "text": macro return nvd.Dt.setText($edom, v);
+							case "html": macro return $edom.innerHTML = v;
+							default:     macro return $edom.$aname = v;
 							}
+						case Style: macro return $edom.style.$aname = v;
 						default: throw "ERROR";
 						}
 					}),
@@ -396,16 +403,17 @@ class Macros {
 		case EConst(CIdent("null")):
 		case EObjectDecl(a):
 			for (f in a) {
-				var val = f.expr;
-				var xc: XmlCt = null;
-				switch (val.expr) {
+				switch (f.expr.expr) {
 				case ECall(fn, pa):
-					xc = argXmlCt(top, pa[0]);
+					var xc = argXmlCt(top, pa[0]);
+					inline function isUseCss(n) return xc.css != null && pa.length > n && exprBool(pa[n]);
 					switch (fn.expr) {
 					case EConst(CIdent("Elem")):
-						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct, usecss: xc.css != null && pa.length > 1 && exprBool(pa[1])});
+						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct, usecss: isUseCss(1)});
+
 					case EConst(CIdent("Attr")):
-						out.set(f.field, {argt: Attr, own: xc, name: exprString(pa[1]), w: true, fct: ct_str, usecss: xc.css != null && pa.length > 2 && exprBool(pa[2])});
+						out.set(f.field, {argt: Attr, own: xc, name: exprString(pa[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
+
 					case EConst(CIdent("Prop")):
 						var aname = exprString(pa[1]);
 						var fc = fdom.get(aname);
@@ -415,12 +423,19 @@ class Macros {
 								fc = elem.get(aname);
 						}
 						if (fc == null) Context.error('${xc.xml.nodeName} has no field "$aname"', pa[1].pos);
-						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t, usecss: xc.css != null && pa.length > 2 && exprBool(pa[2])});
+						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t, usecss: isUseCss(2)});
+
+					case EConst(CIdent("Style")):
+						var cname = exprString(pa[1]);
+						var fc = fstyle.get(cname);
+						if (fc == null) Context.error('js.html.CSSStyleDeclaration has no field "$cname"', pa[1].pos);
+						out.set(f.field, {argt: Style, own: xc, name: cname, w: fc.w == AccNormal, fct: fc.t, usecss: isUseCss(2)});
+
 					default:
 						Context.error('[macro build]: Unsupported argument', fn.pos);
 					}
 				default:
-					Context.error('[macro build]: Unsupported argument', val.pos);
+					Context.error('[macro build]: Unsupported argument', f.expr.pos);
 				}
 			}
 		default:
