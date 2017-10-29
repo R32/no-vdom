@@ -50,7 +50,7 @@ Output:
 (function () { "use strict";
 var Demo = function() { };
 Demo.main = function() {
-	window.document.querySelector(".hello-world").children[0].textContent = "你好, 世界!";
+  window.document.querySelector(".hello-world").children[0].textContent = "你好, 世界!";
 };
 Demo.main();
 })();
@@ -87,7 +87,7 @@ Component:
   name: Prop("input[name=name]", "value"),
   email: Prop("input[name=email]", "value"),
   remember: Prop("input[type=checkbox]", "checked"),
-  // the last argument "true" is used to keep the css-selector to finding in runtime
+  // the last argument "true" is used to keep the css-selector to selecting
   herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
 })) abstract LoginForm(nvd.Comp) {
   public inline function getData() {
@@ -132,6 +132,11 @@ Demo.main = function() {
 Demo.main();
 })();
 ```
+
+## CHANGES
+
+* 0.3.0 Added `Style(sel, cssname)`
+* 0.2.0 Allow keep the css-selector to selecting
 
 <hr />
 
