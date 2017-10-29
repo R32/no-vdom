@@ -1,10 +1,14 @@
 package;
 
 class Nvd {
-	/**
+	/*
 	 example:
 
 	 ```hx
+	 h("a.btn", "click here...");          => "<a class="btn">click here...</a>"
+
+	 h("h4", [" tick: ", h("span", "1")]); => "<h4> tick: <span>1</span></h4>"
+
 	 h("div.cls1", [
 		h("label", [
 			"text node: ",
@@ -32,7 +36,7 @@ class Nvd {
 	}
 
 #if macro
-	/**
+	/*
 	example:
 
 	```xml
@@ -51,18 +55,18 @@ class Nvd {
 	    text:  Prop("p", "textContent"), // same as ".template-1 p".textContent
 	    title: Attr("a", "title"),       // same as ".template-1 a".attribute("title")
 	    cls:   Prop("a", "className"),   // same as ".template-1 a".className
-	    x: Prop([], "offsetLeft")        // same as ".template-1".offsetLeft
-	}) abstract Temp_1(nvd.Comp) {}
+	    x: Prop(null, "offsetLeft")      // same as ".template-1".offsetLeft
+	    display: Style(null, "display")  // same as ".template-1".style.display
+	}) abstract Foo(nvd.Comp) {}
 	// ....
-	var t1 = new Temp_1();
-	t1.|
+	var foo = new Foo();
+	foo.|
 	```
 	*/
-	static var files = new Map<String, csss.xml.Xml>();
 	public static function build(file: String, selector: String, ?extra, create = true) {
-		if (!files.exists(file))
-			files.set(file, csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement());
-		var root = files.get(file);
+		if (!nvd.Macros.files.exists(file))
+			nvd.Macros.files.set(file, csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement());
+		var root = nvd.Macros.files.get(file);
 		var el = csss.Query.querySelector(root, selector);
 		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', extra.pos);
 		return nvd.Macros.make(el, extra, {file: file, min: 0}, create);

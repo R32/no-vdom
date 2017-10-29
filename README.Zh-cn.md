@@ -177,19 +177,10 @@ new haxe_Timer(1000).run = function() {
   name: Prop("input[name=name]", "value"),
   email: Prop("input[name=email]", "value"),
   remember: Prop("input[type=checkbox]", "checked"),
-#if (js_es >= 5)
-  // IE8 did not support the pseudo-selector ":checked"
-  // the last argument "true" is used to keep the css-selector to find in runtime
+  // 最后一个参数 true, 表示在运行时使用 css 选择符来查找这个元素。
   herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
-#end
 })) abstract LoginForm(nvd.Comp) {
   public inline function getData() {
-  #if (js_es < 5)
-    var herpderp = null;
-    var a: Array<js.html.InputElement> = cast this.querySelectorAll("input[name=herpderp]");
-    for (r in a)
-      if (r.checked) herpderp = r.value;
-  #end
     return {
       name: name,
       email: email,

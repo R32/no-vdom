@@ -63,7 +63,6 @@ class NvdTest {
 		foo.title = "Greeting";
 
 		var bar: Bar = Bar.ofSelector("div.template-1");
-
 		console.log(bar.x);
 		console.log(bar.y);
 		console.log(bar.text);
@@ -76,10 +75,11 @@ class NvdTest {
 }
 
 @:build(Nvd.build("bin/index.html", "div.flex-table", {
+	display: Style(null, "display"),
 	input: Elem(".input-block"),
 	value: Prop(".input-block", "value", true),
 	title: Attr([1, 0], "title"),
-})) abstract Foo(nvd.Comp) to nvd.Comp {
+})) abstract Foo(nvd.Comp) {
 }
 
 
@@ -90,10 +90,10 @@ class NvdTest {
 	cls:   Prop("a", "className"),   // same as ".template-1 a".className})) abstract Bar(nvd.Comp) to nvd.Comp {
 	x: Prop("", "offsetLeft"),       // same as ".template-1".offsetLeft}
 	y: Prop([], "offsetTop"),        // same as ".template-1".offsetTop}
-})) abstract Bar(nvd.Comp) to nvd.Comp {
+})) abstract Bar(nvd.Comp) {
 }
 
 @:build(Nvd.buildString('<div class="hehe hahs"><label> some thing <input type="text" value="no work!" /></label></div>', null, {
 	value: Prop("input", "value")
-})) abstract Tee(nvd.Comp) to nvd.Comp {
+})) abstract Tee(nvd.Comp) {
 }
