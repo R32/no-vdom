@@ -235,6 +235,7 @@ class Macros {
 				expr: ECheckType(edom, v.own.ct),
 				pos : edom.pos
 			};
+
 			fields.push({
 				name: k,
 				access: [APublic],
@@ -291,6 +292,23 @@ class Macros {
 			Context.registerModuleDependency(cls.module, xpos.file);
 		}
 		return fields;
+	}
+
+	static function simpleValid(xml: csss.xml.Xml, prop: String): Bool @:privateAccess {
+		var pass = true;
+		switch (prop) {
+		case "textContent", "innerText":
+			pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
+		case "text":
+			switch (xml.nodeName) {
+			case "INPUT", "OPTION", "SELECT": // see nvd.Dt.setText();
+			default:
+				pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
+			}
+		// case "innerHtml", "html":         // no idea how to handle it.
+		default:
+		}
+		return pass;
 	}
 
 	static function exprString(e: Expr): String {
@@ -417,7 +435,7 @@ class Macros {
 								fc = elem.get(aname);
 						}
 						if (fc == null) Context.error('${xc.xml.nodeName} has no field "$aname"', pa[1].pos);
-						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal, fct: fc.t, usecss: isUseCss(2)});
+						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal && simpleValid(xc.xml, aname), fct: fc.t, usecss: isUseCss(2)});
 
 					case EConst(CIdent("Style")):
 						var cname = exprString(pa[1]);
