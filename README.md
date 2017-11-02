@@ -1,17 +1,24 @@
 no-vdom
 --------
 
-This is a haxelib that used to converts operations on components to direct manipulate the DOM.
+For building HTML `macro components`:
+
+* easy, readable and type-safe.
+
+* the js output is clean and zero performance loss.
+
+* support IE8
+
+  > you may need to add `-D js-es=3` or make polyfill by yourself.
 
 ## Demo
 
-all the code in [demo](demo/Demo.hx?ts=4)
+all the code below is in [demo](demo/Demo.hx?ts=4)
 
 ### hello world
 
-html fragment in index.html
-
 ```html
+<!-- html fragment in index.html -->
 <div class="hello-world">
   <h4>hello world</h4>
 </div>
@@ -26,8 +33,6 @@ Component: (use `macro` and `abstract` to define it.)
 }
 ```
 
-Demo.hx:
-
 ```hx
 class Demo {
   static function main() {
@@ -36,8 +41,6 @@ class Demo {
   }
 }
 ```
-
-Compiling:
 
 ```bash
 haxe -dce full -D analyzer-optimize -main Demo -lib no-vdom -js demo.js
@@ -57,8 +60,6 @@ Demo.main();
 ```
 
 ### form data
-
-html fragment in index.html
 
 ```html
 <div id="login" style="width: 320px; font-size: 14px">
@@ -87,7 +88,7 @@ Component:
   name: Prop("input[name=name]", "value"),
   email: Prop("input[name=email]", "value"),
   remember: Prop("input[type=checkbox]", "checked"),
-  // the last argument "true" is used to keep the css-selector to selecting
+  // the last argument "true" is used to keep css-selector in output
   herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
 })) abstract LoginForm(nvd.Comp) {
   public inline function getData() {
@@ -136,8 +137,4 @@ Demo.main();
 ## CHANGES
 
 * 0.3.0 Added `Style(sel, cssname)`
-* 0.2.0 Allow keep the css-selector to selecting
-
-<hr />
-
-[chinese doc 中文](README.Zh-cn.md)
+* 0.2.0 Allow keep css-selector in output.
