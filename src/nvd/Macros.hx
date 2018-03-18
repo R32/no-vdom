@@ -76,11 +76,12 @@ class Macros {
 		}
 	}
 
-	static var files = new Map<String, csss.xml.Xml>();
+	static var files = new Map<String, csss.xml.Xml>();   // for Nvd.hx
 	// complexType
 	static var ct_dom = macro :js.html.DOMElement;
 	static var ct_str = macro :String;
-	static var ct_map = new Map<String, ComplexType>();  // full_name => ComplexType
+	// collections of complexType by tagname
+	static var ct_maps = new Map<String, ComplexType>();  // full_name => ComplexType
 	static function cachedCType(t: Type): ComplexType {
 		var ret: ComplexType;
 		var name = null;
@@ -91,15 +92,15 @@ class Macros {
 			name = r.toString();
 		default:
 		}
-		if (name != null) ret = ct_map.get(name);
+		if (name != null) ret = ct_maps.get(name);
 		if (ret == null) {
 			ret = t.toComplexType();
-			if (name != null) ct_map.set(name, ret);
+			if (name != null) ct_maps.set(name, ret);
 		}
 		return ret;
 	}
 
-	static var xpos: XmlPos;
+	static var file_pos: XmlPos;
 	// for detecting whether the field can be written.
 	static var fdom: Map<String, FCType> = null;                        // field_name => FCType
 	static var fdom_ex: Map<String, Map<String, FCType>> = new Map();   // tagName => [field_name => FCType]
@@ -142,7 +143,7 @@ class Macros {
 	}
 
 	static function make(el: Xml, extra: Expr, fp: XmlPos, create: Bool): Array<Field> {
-		xpos = fp;
+		file_pos = fp;
 		initBaseElems();
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
@@ -295,8 +296,8 @@ class Macros {
 			}
 		}
 
-		if (xpos.min == 0) { // from Nvd.build
-			Context.registerModuleDependency(cls.module, xpos.file);
+		if (file_pos.min == 0) { // from Nvd.build
+			Context.registerModuleDependency(cls.module, file_pos.file);
 		}
 		return fields;
 	}
@@ -410,7 +411,7 @@ class Macros {
 		default:
 			Context.error("[macro build]: Unsupported type", e.pos);
 		}
-		if (x == null) Context.error('Could not find "$sel" in ${top.toSimpleString()}', xpos.xml(top));
+		if (x == null) Context.error('Could not find "$sel" in ${top.toSimpleString()}', file_pos.xml(top));
 		if (ep == null) ep = getEPath(x, top);
 		var ct = tag2ctype(x.nodeName, top.nodeName == "SVG"); // Note: this method will be extract all field ComplexType to "fdom_ex"
 		return {xml: x, ct: ct, path: ep, pos: e.pos, css: css};
@@ -469,7 +470,7 @@ class Macros {
 			if (aname.charCodeAt(0) == ":".code) continue; // It's a posInfo
 			var value = xml.get(aname);
 			var av = HXX.parse(value);
-			var ap = xpos.pos(xml.attrPos(aname), value.length);
+			var ap = file_pos.pos(xml.attrPos(aname), value.length);
 			if (av.length == 1) {
 				switch (av[0]) {
 				case Key(k):
@@ -488,7 +489,7 @@ class Macros {
 		if (len == 1 && children[0].nodeType == PCData) {
 			var value = children[0].nodeValue;
 			var av = HXX.parse(value);
-			var ap = xpos.pos(children[0].nodePos(), value.length);
+			var ap = file_pos.pos(children[0].nodePos(), value.length);
 			if (av.length == 1) {
 				switch (av[0]) {
 				case Key(k):
@@ -516,7 +517,7 @@ class Macros {
 					if (CValid.until(value, 0, value.length, CValid.is_space) < value.length)  // skip spaces text node
 						a.push(macro $v{value.split("\r\n").join("\n")});                      // replace "\r\n" to "\n"
 				} else {
-					Context.error("Unsupported XML Type", xpos.xml(child));
+					Context.error("Unsupported XML Type", file_pos.xml(child));
 				}
 				++ i;
 			}
@@ -538,7 +539,7 @@ class Macros {
 	// got ComplexType by tagName and extract it all fields...
 	static function tag2ctype(tagname: String, svg = false, extract = true): ComplexType {
 		var mod = tag2mod(tagname, svg);
-		var ct = ct_map.get(mod);
+		var ct = ct_maps.get(mod);
 		if (ct == null) {
 			var type = Context.getType(mod);
 			if (type == null) {
@@ -557,7 +558,7 @@ class Macros {
 					}
 				}
 				ct = type.toComplexType();
-				ct_map.set(mod, ct);
+				ct_maps.set(mod, ct);
 			}
 		}
 		return ct;
