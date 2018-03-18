@@ -2,6 +2,8 @@ package;
 
 class Nvd {
 	/*
+	 used for create Tag/Element
+
 	 example:
 
 	 ```hx
@@ -33,6 +35,13 @@ class Nvd {
 			}
 		}
 		return macro nvd.Dt.make($a{ret});
+	}
+
+	/**
+	 for create TextNode.
+	*/
+	macro public static function text(text: haxe.macro.Expr.ExprOf<String>) {
+		return macro js.Browser.document.createTextNode($text);
 	}
 
 #if macro
