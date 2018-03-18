@@ -174,14 +174,21 @@ class Macros {
 			});
 		}
 
+		var ct_tag = tag2ctype(el.nodeName, el.nodeName == "SVG", false);
 		fields.push({
-			name: "toElem",
-			access: [AInline, APublic],
+			name: "d",
+			access: [APublic],
+			pos: pos,
+			kind: FProp("get", "never", ct_tag)
+		});
+		fields.push({
+			name: "get_d",
+			access: [AInline, APrivate],
 			pos: pos,
 			meta: [{name: ":to", pos: pos}],
 			kind: FFun({
 				args: [],
-				ret: tag2ctype(el.nodeName, el.nodeName == "SVG", false),
+				ret: ct_tag,
 				expr: macro return cast this
 			})
 		});
@@ -225,7 +232,7 @@ class Macros {
 			var elook = "lookup" + v.own.path.length;
 			var edom: Expr;
 			if (v.usecss && v.own.css != null) {
-				edom = macro cast toElem().querySelector($v{v.own.css});
+				edom = macro cast d.querySelector($v{v.own.css});
 			} else {
 				edom = v.own.path.length < 6 // see Comp::lookup
 					? macro @:privateAccess cast this.$elook($a{ (v.own.path: Array<Int>).map(function(i){return macro $v{i}}) })
