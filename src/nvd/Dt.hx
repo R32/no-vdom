@@ -9,7 +9,7 @@ DOM Tools
 @:native("dt") class Dt {
 
 	@:native("h")
-	@:pure public static function make(name: String, a: Attr, ?p: Prop, ?dyn: Dynamic):DOMElement {
+	public static function make(name: String, a: Attr, ?p: Prop, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (a != null) a.update(dom);
 		if (dyn != null) {
@@ -62,11 +62,7 @@ DOM Tools
 					var select: js.html.SelectElement = cast dom;
 					return (cast select.options[select.selectedIndex]).text;
 				default:
-					#if (js_es < 5)
-					return Reflect.field(dom, textContent);
-					#else
 					return dom.textContent;
-					#end
 			}
 		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) {
 			return dom.nodeValue;
@@ -90,11 +86,7 @@ DOM Tools
 					}
 				}
 			default:
-				#if (js_es < 5)
-					Reflect.setField(dom, textContent, text);
-				#else
-					dom.textContent = text;
-				#end
+				dom.textContent = text;
 			}
 		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) { // #text, #comment
 			dom.nodeValue = text;
@@ -112,24 +104,8 @@ DOM Tools
 
 	public static function setStyle(dom: DOMElement, style: haxe.DynamicAccess<Any>): Void {
 		if (style == null) return;
-		#if (js_es < 5)
-			var ie8 = textContent == "innerText"; // if browser below IE9
-		#end
-			for (k in style.keys()) {
-			#if (js_es < 5)
-				if (ie8) {
-					switch (k) {
-					case "opacity":
-						var f: Float = style.get("opacity");
-						Reflect.setField(dom.style, "filter", 'progid:DXImageTransform.Microsoft.Alpha(Opacity=${Std.int(f * 100)})');
-					case "float":
-						k = "styleFloat";
-					default:
-					}
-				}
-			#end
-				Reflect.setField(dom.style, k, style.get(k));
-			}
+		for (k in style.keys())
+			Reflect.setField(dom.style, k, style.get(k));
 	}
 
 	public static function lookup(dom: DOMElement, path: Array<Int>): DOMElement {
@@ -137,9 +113,6 @@ DOM Tools
 			dom = cast dom.children[p];
 		return dom;
 	}
-#if (js_es < 5)
-	static var textContent = untyped __js__("'textContent' in document.documentElement") ? "textContent" : "innerText";
-#end
 }
 
 
