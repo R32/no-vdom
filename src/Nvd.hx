@@ -1,5 +1,10 @@
 package;
 
+#if macro
+import haxe.macro.Expr;
+import haxe.macro.Context;
+#end
+
 class Nvd {
 	/*
 	 used for create Tag/Element
@@ -20,14 +25,14 @@ class Nvd {
 	 ])
 	 ```
 	*/
-	macro public static function h(exprs: Array<haxe.macro.Expr>) {
+	macro public static function h(exprs: Array<Expr>) {
 		var vattr = {};
 		var name = nvd.Macros.attrParse(exprs[0], vattr);
 		var attr = Reflect.fields(vattr).length == 0 ? macro null : macro $v{ vattr };
 		var ret = [name, attr];
 		if (exprs.length > 1) {
 			switch (exprs[1].expr) {
-			case haxe.macro.Expr.ExprDef.EArrayDecl(_), haxe.macro.Expr.ExprDef.EConst(_):
+			case ExprDef.EArrayDecl(_), ExprDef.EConst(_):
 				ret.push(macro null);
 				ret.push(exprs[1]);
 			default:
@@ -40,7 +45,7 @@ class Nvd {
 	/**
 	 for create TextNode.
 	*/
-	macro public static function text(text: haxe.macro.Expr.ExprOf<String>) {
+	macro public static function text(text: ExprOf<String>) {
 		return macro js.Browser.document.createTextNode($text);
 	}
 
@@ -72,27 +77,34 @@ class Nvd {
 	foo.|
 	```
 	*/
-	public static function build(file: String, selector: String, ?defs, create = true) {
+	public static function build(file: String, selector: ExprOf<String>, ?defs, create = true) {
+		var css = nvd.Macros.exprString(selector);
 		var xml = nvd.Macros.files.get(file);
 		if (xml == null) {
 			xml = csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement();
 			nvd.Macros.files.set(file, xml);
 		}
-		var root = csss.Query.querySelector(xml, selector);
-		if (root == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', defs.pos);
+		var root = csss.Query.querySelector(xml, css);
+		if (root == null) Context.error('Invalid selector or Could not find: "$css"', selector.pos);
 		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
 
-	public static function buildString(es: haxe.macro.Expr, selector: String = null, ?defs, create = true) {
-		var s = nvd.Macros.exprString(es);
+	public static function buildString(es: haxe.macro.Expr, ?selector: ExprOf<String>, ?defs, create = true) {
+		var txt = nvd.Macros.exprString(es);
 		var xml;
 		try {
-			xml = csss.xml.Xml.parse(s).firstElement();
+			xml = csss.xml.Xml.parse(txt).firstElement();
 		} catch(err: Dynamic) {
-			haxe.macro.Context.error("Invalid Xml String", es.pos);
+			Context.error("Invalid Xml String", es.pos);
 		}
-		var root = selector == null || selector == "" ? xml : csss.Query.querySelector(xml, selector);
-		if (root == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', es.pos);
+		var css = null;
+		switch (selector.expr) {
+		case EConst(CIdent("null")), EConst(CString("")):
+		case EConst(CString(s)): css = s;
+		default: Context.error("[macro build]: Expected String", selector.pos);
+		}
+		var root = css == null ? xml : csss.Query.querySelector(xml, css);
+		if (root == null) Context.error('Invalid selector or Could not find: "$css"', selector.pos);
 		var fp = haxe.macro.PositionTools.getInfos(es.pos);
 		return nvd.Macros.make(root, defs, fp, create);
 	}

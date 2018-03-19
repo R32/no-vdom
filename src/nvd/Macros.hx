@@ -393,7 +393,7 @@ class Macros {
 			} else {
 				x = root.querySelector(s);
 				if (x == null)
-					Context.error('Could not find "$s" in ${root.toSimpleString()}', file_pos.xml(root));
+					Context.error('Could not find "$s" in ${root.toSimpleString()}', pa0.pos);
 				css = s;
 				path = getPath(x, root);
 			}
@@ -410,7 +410,7 @@ class Macros {
 			}
 			x = pLookup(root, path, 0);
 			if (x == null)
-				Context.error('Could not find "${"[" + path.join(",") + "]"}" in ${root.toSimpleString()}', file_pos.xml(root));
+				Context.error('Could not find "${"[" + path.join(",") + "]"}" in ${root.toSimpleString()}', pa0.pos);
 		default:
 			Context.error("[macro build]: Unsupported type", pa0.pos);
 		}
