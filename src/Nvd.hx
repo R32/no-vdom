@@ -58,7 +58,7 @@ class Nvd {
 	</div>
 	 ```
 
-	 ```hx
+	```hx
 	Nvd.build("file/to/index.html", ".template-1", {
 	    link:  Elem("a"),                // or Elem([1, 0]). same as CSS(".template-1 a")
 	    text:  Prop("p", "textContent"), // same as CSS(".template-1 p").textContent
@@ -72,28 +72,29 @@ class Nvd {
 	foo.|
 	```
 	*/
-	public static function build(file: String, selector: String, ?extra, create = true) {
-		if (!nvd.Macros.files.exists(file))
-			nvd.Macros.files.set(file, csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement());
-		var root = nvd.Macros.files.get(file);
-		var el = csss.Query.querySelector(root, selector);
-		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', extra.pos);
-		return nvd.Macros.make(el, extra, {file: file, min: 0}, create);
+	public static function build(file: String, selector: String, ?defs, create = true) {
+		var xml = nvd.Macros.files.get(file);
+		if (xml == null) {
+			xml = csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement();
+			nvd.Macros.files.set(file, xml);
+		}
+		var root = csss.Query.querySelector(xml, selector);
+		if (root == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', defs.pos);
+		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
 
-	public static function buildString(es: haxe.macro.Expr, selector: String = null, ?extra, create = true) {
+	public static function buildString(es: haxe.macro.Expr, selector: String = null, ?defs, create = true) {
 		var s = nvd.Macros.exprString(es);
-		var root;
+		var xml;
 		try {
-			root = csss.xml.Xml.parse(s).firstElement();
+			xml = csss.xml.Xml.parse(s).firstElement();
 		} catch(err: Dynamic) {
 			haxe.macro.Context.error("Invalid Xml String", es.pos);
 		}
-		var el = selector == null || selector == "" ? root : csss.Query.querySelector(root, selector);
-		if (el == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', es.pos);
-		var xpos = haxe.macro.PositionTools.getInfos(es.pos);
-		xpos.min += 1;  // begin at "1"
-		return nvd.Macros.make(el, extra, xpos, create);
+		var root = selector == null || selector == "" ? xml : csss.Query.querySelector(xml, selector);
+		if (root == null) haxe.macro.Context.error('Invalid selector or Could not find: "$selector"', es.pos);
+		var fp = haxe.macro.PositionTools.getInfos(es.pos);
+		return nvd.Macros.make(root, defs, fp, create);
 	}
 #end
 }

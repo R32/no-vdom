@@ -24,29 +24,29 @@ private abstract XmlPos({file: String, min: Int}) from {file: String, min: Int} 
 	public inline function xml(x: csss.xml.Xml) return pos(x.nodePos(), x.nodeName.length);
 }
 
-private typedef XmlCt = {
-	xml: Xml,
-	ct: ComplexType,
-	path: Array<Int>,
-	pos: haxe.macro.Position, // pos of arg
-	css: String               // css selector
+private typedef DOMAttr = {
+	xml: Xml,                 // the DOMElement
+	ct: ComplexType,          // parsed ComplexType by xml.tagName. If unrecognized, default is `:js.html.DOMElement`
+	path: Array<Int>,         // relative to root
+	pos: haxe.macro.Position, // the pos of first parameter of DefType
+	css: String               // css selector which is used to finding it from root DOMElement.
 }
 
 private typedef FCType = {
-	t: ComplexType,
-	w: VarAccess
+	ct: ComplexType,
+	ac: VarAccess
 }
 
-private typedef Extra = {
-	own: XmlCt,
-	name: String,
-	fct: ComplexType,
-	argt: ExtraArgType,
-	w: Bool,
-	usecss: Bool,
+private typedef DefInfo = {
+	own: DOMAttr,             // Associated DOMElement
+	name: String,             // a field name will be creating
+	fct: ComplexType,         // the ctype of the field.
+	argt: DefType,            // see below.
+	w: Bool,                  // if AccNormal(can be written) then true.
+	usecss: Bool,             // keep the css in output/runtime
 }
 
-@:enum private abstract ExtraArgType(Int) to Int {
+@:enum private abstract DefType(Int) to Int {
 	var Elem = 0;
 	var Attr = 1;
 	var Prop = 2;
@@ -55,6 +55,7 @@ private typedef Extra = {
 
 @:allow(Nvd)
 class Macros {
+	// used for Nvd.h("div#header.menu")
 	static function attrParse(e: Expr, attr): Expr {
 		return switch (e.expr) {
 		case EConst(CString(s)):
@@ -105,18 +106,18 @@ class Macros {
 	static var fdom: Map<String, FCType> = null;                        // field_name => FCType
 	static var fdom_ex: Map<String, Map<String, FCType>> = new Map();   // tagName => [field_name => FCType]
 	static var fstyle: Map<String, FCType> = null;                      // css => FCType
-	static function initBaseElems() {
+	static function initBase() {
 		if (fdom != null) return;
 		fdom = new Map();
-		fdom.set("text", { t: ct_str, w: AccNormal });                  // custom prop
-		fdom.set("html", { t: ct_str, w: AccNormal } );
+		fdom.set("text", { ct: ct_str, ac: AccNormal });                  // custom prop
+		fdom.set("html", { ct: ct_str, ac: AccNormal } );
 		extractFVar(fdom, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 
 		fstyle = new Map();
 		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), null);
 	}
 
-	// only for js.html.*Element;
+	// only for js.html.*Element, Does not contain the type specified by the "stop"
 	static function extractFVar(out: Map<String, FCType>, type: Type, stop = "js.html.Element"): Void {
 		switch (type) {
 		case TInst(r, _):
@@ -127,7 +128,7 @@ class Macros {
 				for (f in fs) {
 					switch (f.kind) {
 					case FVar(_, w):
-						out.set(f.name, { t: cachedCType(f.type), w: w });
+						out.set(f.name, { ct: cachedCType(f.type), ac: w });
 					default:
 					}
 				}
@@ -142,9 +143,9 @@ class Macros {
 		}
 	}
 
-	static function make(el: Xml, extra: Expr, fp: XmlPos, create: Bool): Array<Field> {
+	static function make(root: Xml, defs: Expr, fp: XmlPos, create: Bool): Array<Field> {
 		file_pos = fp;
-		initBaseElems();
+		initBase();
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
 		var cls_path;
@@ -162,6 +163,7 @@ class Macros {
 			all_fds.set(f.name, true);
 		}
 
+		var ct_tag = tag2ctype(root.nodeName, root.nodeName == "SVG", false);
 		if (!all_fds.exists("_new")) { // abstract class constructor
 			fields.push({
 				name: "new",
@@ -170,12 +172,10 @@ class Macros {
 				kind: FFun({
 					args: [{name: "d", type: ct_dom}],
 					ret: null,
-					expr: macro this = new nvd.Comp(d),
+					expr: macro this = cast (d: js.html.DOMElement), // type checking and casting
 				})
 			});
 		}
-
-		var ct_tag = tag2ctype(el.nodeName, el.nodeName == "SVG", false);
 		fields.push({
 			name: "d",
 			access: [APublic],
@@ -193,7 +193,6 @@ class Macros {
 				expr: macro return cast this
 			})
 		});
-
 		if (!all_fds.exists("ofSelector")) {
 			var enew = {expr: ENew(cls_path, [macro js.Browser.document.querySelector(s)]), pos: pos};
 			fields.push({
@@ -208,9 +207,8 @@ class Macros {
 			});
 		}
 
-		var ex: haxe.DynamicAccess<Extra> = {};
-		// TODO: parse Xml
-		var ecreate = xmlParse(el, ex, []);
+		var infos: haxe.DynamicAccess<DefInfo> = {};
+		var ecreate = xmlParse(root, infos, []);  // parse data from XML => infos
 		if (create && !all_fds.exists("create")) {
 			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
 			fields.push({
@@ -224,15 +222,15 @@ class Macros {
 				})
 			});
 		}
-		// parse extra args as FProp
-		argParse(el, extra, ex);
 
-		for (k in ex.keys()) {
-			var v = ex.get(k);
+		argParse(root, defs, infos);              // parse data by defs => infos
+
+		for (k in infos.keys()) {
+			var v = infos.get(k);
 			var aname = v.name;
 			var elook = "lookup" + v.own.path.length;
 			var edom: Expr;
-			if (v.usecss && v.own.css != null) {
+			if (v.usecss && v.own.css != null && v.own.css != "") {
 				edom = macro cast d.querySelector($v{v.own.css});
 			} else {
 				edom = v.own.path.length < 6 // see Comp::lookup
@@ -305,7 +303,7 @@ class Macros {
 	static function simpleValid(xml: csss.xml.Xml, prop: String): Bool @:privateAccess {
 		var pass = true;
 		switch (prop) {
-		case "textContent", "innerText":
+		case "textContent":
 			pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
 		case "text":
 			switch (xml.nodeName) {
@@ -313,7 +311,7 @@ class Macros {
 			default:
 				pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
 			}
-		// case "innerHtml", "html":         // no idea how to handle it.
+		// case "innerHtml", "html":          // no idea how to handle it.
 		default:
 		}
 		return pass;
@@ -337,20 +335,20 @@ class Macros {
 		}
 	}
 
-	static function findByEPath(xml: Xml, epath: Array<Int>, pi: Int): Xml {
-		if (epath.length == 0) return xml;
+	static function pLookup(xml: Xml, path: Array<Int>, pi: Int): Xml {
+		if (path.length == 0) return xml;
 		var i  = 0;
 		var ei = 0;
 		var childs = @:privateAccess xml.children;
 		var max = childs.length;
-		var pv = epath[pi++];
+		var pv = path[pi++];
 		while (i < max) {
 			if (childs[i].nodeType == Element) {
 				if (ei == pv) {
-					if (pi == epath.length)
+					if (pi == path.length)
 						return childs[i];
 					else
-						return findByEPath(childs[i], epath, pi);
+						return pLookup(childs[i], path, pi);
 				}
 				++ ei;
 			}
@@ -359,7 +357,7 @@ class Macros {
 		return null;
 	}
 
-	static function getEPath(xml: Xml, top: Xml): Array<Int> {
+	static function getPath(xml: Xml, top: Xml): Array<Int> {
 		var ret = [];
 		while (xml != top && xml.parent != null) {
 			var i = 0;
@@ -371,7 +369,7 @@ class Macros {
 					if (col[i] == xml) ret.push(ei);
 					++ ei;
 				} else if (col[i].nodeType != PCData) { // (#CData, #ProcessingInstruction => #comment) in IE8
-					throw "Do not include Comment-Node in the template";
+					throw "Error has been reported by xmlParse.";
 				}
 				++ i;
 			}
@@ -384,72 +382,74 @@ class Macros {
 		return ret;
 	}
 
-	static function argXmlCt(top: Xml, e: Expr): XmlCt {
+	static function getDOMAttr(root: Xml, pa0: Expr): DOMAttr {
 		var x: Xml = null;
-		var ep: Array<Int>;
-		var sel: String;
+		var path: Array<Int> = [];
 		var css: String = null;
-		switch (e.expr) {
+		switch (pa0.expr) {
 		case EConst(CString(s)):
-			x = s == "" ? top : top.querySelector(s);
-			sel = s;
-			if (s != "") css = s;
+			if (s == "") {
+				x = root;
+			} else {
+				x = root.querySelector(s);
+				if (x == null)
+					Context.error('Could not find "$s" in ${root.toSimpleString()}', file_pos.xml(root));
+				css = s;
+				path = getPath(x, root);
+			}
 		case EConst(CIdent("null")):
-			x = top;
-			sel = "";
+			x = root;
 		case EArrayDecl(a):
-			ep = [];
+			path = [];
 			for (n in a) {
 				switch (n.expr) {
-				case EConst(CInt(i)): ep.push(Std.parseInt(i));
+				case EConst(CInt(i)): path.push(Std.parseInt(i));
 				default:
 					Context.error("[macro build]: Expected Int", n.pos);
 				}
 			}
-			x = findByEPath(top, ep, 0);
-			sel = "[" + ep.join(",") + "]";
+			x = pLookup(root, path, 0);
+			if (x == null)
+				Context.error('Could not find "${"[" + path.join(",") + "]"}" in ${root.toSimpleString()}', file_pos.xml(root));
 		default:
-			Context.error("[macro build]: Unsupported type", e.pos);
+			Context.error("[macro build]: Unsupported type", pa0.pos);
 		}
-		if (x == null) Context.error('Could not find "$sel" in ${top.toSimpleString()}', file_pos.xml(top));
-		if (ep == null) ep = getEPath(x, top);
-		var ct = tag2ctype(x.nodeName, top.nodeName == "SVG"); // Note: this method will be extract all field ComplexType to "fdom_ex"
-		return {xml: x, ct: ct, path: ep, pos: e.pos, css: css};
+		var ct = tag2ctype(x.nodeName, root.nodeName == "SVG"); // Note: this method will be extract all ComplexType of the field to "fdom_ex"
+		return {xml: x, ct: ct, path: path, pos: pa0.pos, css: css};
 	}
 
-	static function argParse(top: Xml, extra: Expr, out:haxe.DynamicAccess<Extra>) {
-		switch (extra.expr) {
-		case EBlock([]):
-		case EConst(CIdent("null")):
+	static function argParse(top: Xml, defs: Expr, out:haxe.DynamicAccess<DefInfo>) {
+		switch (defs.expr) {
+		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
 		case EObjectDecl(a):
 			for (f in a) {
 				switch (f.expr.expr) {
 				case ECall(fn, pa):
-					var xc = argXmlCt(top, pa[0]);
-					inline function isUseCss(n) return xc.css != null && pa.length > n && exprBool(pa[n]);
+					var da = getDOMAttr(top, pa[0]);
+					inline function isUseCss(n) return da.css != null && pa.length > n && exprBool(pa[n]);
 					switch (fn.expr) {
 					case EConst(CIdent("Elem")):
-						out.set(f.field, {argt: Elem, own: xc, name: null, w: false, fct: xc.ct, usecss: isUseCss(1)});
+						out.set(f.field, {argt: Elem, own: da, name: null, w: false, fct: da.ct, usecss: isUseCss(1)});
 
 					case EConst(CIdent("Attr")):
-						out.set(f.field, {argt: Attr, own: xc, name: exprString(pa[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
+						out.set(f.field, {argt: Attr, own: da, name: exprString(pa[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
 
 					case EConst(CIdent("Prop")):
 						var aname = exprString(pa[1]);
 						var fc = fdom.get(aname);
 						if (fc == null) {
-							var elem = fdom_ex.get(xc.xml.nodeName);
+							var elem = fdom_ex.get(da.xml.nodeName);
 							if (elem != null)
 								fc = elem.get(aname);
 						}
-						if (fc == null) Context.error('${xc.xml.nodeName} has no field "$aname"', pa[1].pos);
-						out.set(f.field, {argt: Prop, own: xc, name: aname, w: fc.w == AccNormal && simpleValid(xc.xml, aname), fct: fc.t, usecss: isUseCss(2)});
+						if (fc == null) Context.error('${da.xml.nodeName} has no field "$aname"', pa[1].pos);
+						out.set(f.field, {argt: Prop, own: da, name: aname, w: fc.ac == AccNormal && simpleValid(da.xml, aname), fct: fc.ct, usecss: isUseCss(2)});
 
 					case EConst(CIdent("Style")):
 						var cname = exprString(pa[1]);
 						var fc = fstyle.get(cname);
 						if (fc == null) Context.error('js.html.CSSStyleDeclaration has no field "$cname"', pa[1].pos);
-						out.set(f.field, {argt: Style, own: xc, name: cname, w: fc.w == AccNormal, fct: fc.t, usecss: isUseCss(2)});
+						out.set(f.field, {argt: Style, own: da, name: cname, w: fc.ac == AccNormal, fct: fc.ct, usecss: isUseCss(2)});
 
 					default:
 						Context.error('[macro build]: Unsupported argument', fn.pos);
@@ -459,11 +459,11 @@ class Macros {
 				}
 			}
 		default:
-			Context.error('[macro build]: Unsupported type for "extra"', extra.pos);
+			Context.error('[macro build]: Unsupported type for "defs"', defs.pos);
 		}
 	}
 
-	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<Extra>, epath: Array<Int>): Expr {
+	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<DefInfo>, path: Array<Int>): Expr {
 		var attr = new haxe.DynamicAccess<String>();
 		xml.remove("id");
 		for (aname in xml.attributes()) {
@@ -474,8 +474,8 @@ class Macros {
 			if (av.length == 1) {
 				switch (av[0]) {
 				case Key(k):
-					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap, css: null};
-					out.set(k, {own: xc, name: aname, fct: ct_str, w: true, argt: Attr, usecss: false });
+					var da: DOMAttr = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: path, pos: ap, css: null};
+					out.set(k, {own: da, name: aname, fct: ct_str, w: true, argt: Attr, usecss: false });
 				case Str(s, _):
 					attr.set(aname, s);
 				}
@@ -493,8 +493,8 @@ class Macros {
 			if (av.length == 1) {
 				switch (av[0]) {
 				case Key(k):
-					var xc = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: epath, pos: ap, css: null};
-					out.set(k, {own: xc, name: "text", fct: ct_str, w: true, argt: Prop, usecss: false }); // custom prop "text"
+					var da: DOMAttr = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: path, pos: ap, css: null};
+					out.set(k, {own: da, name: "text", fct: ct_str, w: true, argt: Prop, usecss: false }); // custom prop "text"
 					subs = macro $v{k};
 				case Str(s, _):
 					subs = macro $v{s};
@@ -507,7 +507,7 @@ class Macros {
 			var i = 0, j = 0;
 			while (i < len) {
 				var child = children[i];
-				var sp = epath.slice(0); // copy
+				var sp = path.slice(0); // copy
 				sp.push(j);
 				if (child.nodeType == Element) {
 					a.push(xmlParse(child, out, sp));
@@ -517,7 +517,7 @@ class Macros {
 					if (CValid.until(value, 0, value.length, CValid.is_space) < value.length)  // skip spaces text node
 						a.push(macro $v{value.split("\r\n").join("\n")});                      // replace "\r\n" to "\n"
 				} else {
-					Context.error("Unsupported XML Type", file_pos.xml(child));
+					Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Template, it will cause some issues in IE8.", file_pos.xml(child));
 				}
 				++ i;
 			}
@@ -536,7 +536,7 @@ class Macros {
 		return "js.html." + name;
 	}
 
-	// got ComplexType by tagName and extract it all fields...
+	// got ComplexType by tagName and extract all fields from it...
 	static function tag2ctype(tagname: String, svg = false, extract = true): ComplexType {
 		var mod = tag2mod(tagname, svg);
 		var ct = ct_maps.get(mod);
@@ -564,7 +564,7 @@ class Macros {
 		return ct;
 	}
 
-	// Do not contain SVG child elements.
+	// Does not contain SVG elements.
 	static var tags: haxe.DynamicAccess<String> = {
 		"A"          : "AnchorElement",
 	//	"AREA"       : "AreaElement",
