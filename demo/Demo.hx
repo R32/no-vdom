@@ -18,7 +18,6 @@ class Demo {
 }
 
 // tutorial hello world
-// Note: IE8 does not support "textContent", use https://eligrey.com/blog/textcontent-in-ie8/ as polyfill
 @:build(Nvd.build("index.html", ".hello-world", {
 	text: Prop("h4", "textContent"),
 })) abstract HelloWorld(nvd.Comp) {
@@ -41,19 +40,11 @@ class Demo {
 	name: Prop("input[name=name]", "value"),
 	email: Prop("input[name=email]", "value"),
 	remember: Prop("input[type=checkbox]", "checked"),
-#if (js_es >= 5)
-	// IE8 does not support the pseudo-selector ":checked"
-	// the last argument "true" is used to keep the css-selector in runtime
+	// Note: IE8 does not support the pseudo-selector ":checked"
+	// the last argument "true" is used to keep the css-selector in output
 	herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
-#end
 })) abstract LoginForm(nvd.Comp) {
 	public inline function getData() {
-	#if (js_es < 5)
-		var herpderp = null;
-		var a: Array<js.html.InputElement> = cast this.querySelectorAll("input[name=herpderp]");
-		for (r in a)
-			if (r.checked) herpderp = r.value;
-	#end
 		return {
 			name: name,
 			email: email,

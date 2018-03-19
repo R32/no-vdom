@@ -1,15 +1,27 @@
 no-vdom
 --------
 
-For building HTML `macro components`:
+A haxelib for building HTML `macro components`:
 
-* easy, readable and type-safe.
+* Easy *If you know css selector and haxe, you will understand all the syntax in just 1 minutes.*
 
-* the js output is clean and zero performance loss.
+  > no jsx and no need add any extra meta/info to HTML
 
-* support IE8
+* Intelligent:
 
-  > you may need to add `-D js-es=3` or make polyfill by yourself.
+  ![screen shot](demo/demo-3.gif)
+
+* Strictly type: *As shown in the bottom GIF*
+
+  for example the `<button>` will be recognized as `js.html.ButtonElement`
+
+* **Zero Performance Loss**.
+
+* IE8+ Support. *Note: Need to add polyfills. e.g: [textContext](http://eligrey.com/blog/post/textcontent-in-ie8)*
+
+* issues:
+  - can not recognize SVG Element which will be treated as a DOMElement.
+  - Comment, CDATA and ProcessingInstruction cannot be included in HTML fragment. (will throw an error.)
 
 ## Demo
 
@@ -24,26 +36,22 @@ all the code below is in [demo](demo/Demo.hx?ts=4)
 </div>
 ```
 
-Component: (use `macro` and `abstract` to define it.)
+**Component**: (use `macro` and `abstract` to define it.)
 
 ```haxe
 @:build(Nvd.build("index.html", ".hello-world", {
   text: Prop("h4", "textContent"),
 })) abstract HelloWorld(nvd.Comp) {
 }
-```
 
-```hx
 class Demo {
   static function main() {
     var hw = HelloWorld.ofSelector(".hello-world");
     hw.text = "你好, 世界!";
   }
 }
-```
 
-```bash
-haxe -dce full -D analyzer-optimize -main Demo -lib no-vdom -js demo.js
+// build: haxe -dce full -D analyzer-optimize -main Demo -lib no-vdom -js demo.js
 ```
 
 Output:
@@ -58,6 +66,73 @@ Demo.main = function() {
 Demo.main();
 })();
 ```
+
+#### Docs
+
+Back to the top of the **Component**, The macro will automatically generate the following code:
+
+  > Add the Compile flag "-D dump=pretty" and you will find it in the `dump` directory
+
+```haxe
+abstract HelloWorld(nvd.Comp) {
+  // added automatically
+  public var d(get, never): js.html.DOMElement;
+  @:to inline function get_d(): js.html.DOMElement { return cast this; }
+
+  public inline function new(dom: js.html.DOMElement) { this = dom; }
+
+  public static inline function ofSelector(css_selector: String): HelloWorld {
+    return new HelloWorld(document.querySelector(css_selector));
+  }
+  public static inline function create(): HelloWorld {
+    return nvd.Dt.create(/* auto filled by macro */);
+  }
+
+  // The code below is generated based on the defs
+  public var text(get, set): String;
+  inline function get_text(): String {
+    return d.children[0].textContext;
+  }
+  inline function set_text(s: String): String {
+    d.children[0].textContext = s;
+    return s;
+  }
+}
+```
+
+Syntax: *Note that the following is pseudo code*
+
+```haxe
+/**
+@file: Specify an HTML file, Relative to current project.
+@root: a css selector will specify a **root DOMElement** of the Component.
+@defs: Optional. See **DefType** for details. example:
+  {
+    text: Prop("label", "textContext"),
+    btn : Elem("button"),
+    value: Attr("input[type=button]", "value")
+    x: Style(null, "left"),
+    y: Style(null, "top")
+  }
+*/
+Nvd.build(file: String, root: String, ?defs: Dynamic<Defines>);
+
+/**
+@child: a css selector that used to specify a child DOMElement , if null it's represented as root DOMElement.
+
+  (In fact, this parameter can also be an array that describes the location relative to the root DOMElement).
+@name:
+@keep: Optional, if true that will keep the "css-selector"(first parameter) in output.
+*/
+enum DefType {
+  Elem(?child: String, ?keep: Bool)
+  Prop(?child: String, prop_name: String, ?keep: Bool)
+  Attr(?child: String, attr_name: String, ?keep: Bool)
+  Style(?child:String, style_name:String, ?keep: Bool)
+}
+```
+
+This is all the Syntax.
 
 ### form data
 
@@ -136,5 +211,6 @@ Demo.main();
 
 ## CHANGES
 
+* 0.3.1 minor
 * 0.3.0 Added `Style(sel, cssname)`
 * 0.2.0 Allow keep css-selector in output.
