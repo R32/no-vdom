@@ -3,9 +3,7 @@ no-vdom
 
 A haxelib for building HTML `macro components`:
 
-* Easy *If you know css selector and haxe, you will understand all the syntax in just 1 minutes.*
-
-  > no jsx and no need add any extra meta/info to HTML
+* Easy: If you know css selector and haxe, you will understand all the syntax in just 1 minutes.
 
 * Intelligent:
 
@@ -13,7 +11,7 @@ A haxelib for building HTML `macro components`:
 
 * Strictly type: *As shown in the bottom GIF*
 
-  for example the `<button>` will be recognized as `js.html.ButtonElement`
+  > for example the `<button>` will be recognized as `js.html.ButtonElement`
 
 * **Zero Performance Loss**.
 
@@ -67,46 +65,16 @@ Demo.main();
 })();
 ```
 
-#### Docs
+#### Syntax
 
-Back to the top of the **Component**, The macro will automatically generate the following code:
-
-  > Add the Compile flag "-D dump=pretty" and you will find it in the `dump` directory
-
-```haxe
-abstract HelloWorld(nvd.Comp) {
-  // added automatically
-  public var d(get, never): js.html.DOMElement;
-  @:to inline function get_d(): js.html.DOMElement { return cast this; }
-
-  public inline function new(dom: js.html.DOMElement) { this = dom; }
-
-  public static inline function ofSelector(css_selector: String): HelloWorld {
-    return new HelloWorld(document.querySelector(css_selector));
-  }
-  public static inline function create(): HelloWorld {
-    return nvd.Dt.create(/* auto filled by macro */);
-  }
-
-  // The code below is generated based on the defs
-  public var text(get, set): String;
-  inline function get_text(): String {
-    return d.children[0].textContext;
-  }
-  inline function set_text(s: String): String {
-    d.children[0].textContext = s;
-    return s;
-  }
-}
-```
-
-Syntax: *Note that the following is pseudo code*
+Note that the following is pseudo code
 
 ```haxe
 /**
 @file: Specify an HTML file, Relative to current project.
 @root: a css selector will specify a **root DOMElement** of the Component.
-@defs: Optional. See **DefType** for details. example:
+@defs: Optional. See **DefType** for details.
+  example:
   {
     text: Prop("label", "textContext"),
     btn : Elem("button"),
@@ -119,8 +87,7 @@ Nvd.build(file: String, root: String, ?defs: Dynamic<Defines>);
 
 /**
 @child: a css selector that used to specify a child DOMElement , if null it's represented as root DOMElement.
-
-  (In fact, this parameter can also be an array that describes the location relative to the root DOMElement).
+    (In fact, this parameter can also be an array that describes the location relative to the root DOMElement).
 @name:
 @keep: Optional, if true that will keep the "css-selector"(first parameter) in output.
 */
@@ -131,8 +98,6 @@ enum DefType {
   Style(?child:String, style_name:String, ?keep: Bool)
 }
 ```
-
-This is all the Syntax.
 
 ### form data
 
@@ -175,13 +140,8 @@ Component:
     }
   }
 }
-```
 
-![screen shot](demo/demo.gif)
 
-![screen shot](demo/demo-2.gif)
-
-```hx
 class Demo {
   static function main() {
     // login
@@ -192,6 +152,10 @@ class Demo {
   }
 }
 ```
+
+![screen shot](demo/demo.gif)
+
+![screen shot](demo/demo-2.gif)
 
 output:
 
