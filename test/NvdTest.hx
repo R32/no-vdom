@@ -6,9 +6,7 @@ import Nvd.h;
 
 class NvdTest {
 	static function main() {
-		var d1 = h("div", {
-			className: "red some"
-		}, [
+		var d1 = h("div.red.some", [
 
 			h("label", [
 				"text node: ",
@@ -21,10 +19,7 @@ class NvdTest {
 
 			h("br"),
 
-			h("span[title='span span span'][href='#']#hehe.aaa.d-c", { style: {
-				opacity: 0.35,
-				display: "inline-block", // IE8 opacity bug?
-			}}, "span 2"),
+			h("span[title='span span span'][href='#']#hehe.aaa.d-c", "span 2"),
 
 			h("br"),
 
@@ -39,17 +34,9 @@ class NvdTest {
 			])
 		]);
 
-		var d2 = h("input", {
-		}, "input test");
+		var d2 = h("input", "input test");
 
-		var d3 = h("input[type=button].btn", {
-			onclick: function(e) {
-				var t0 = haxe.Timer.stamp();
-				d1.replaceChild(h("span", "tag span"), d1.children[0]);
-				nvd.Dt.setText(d1.children[2], "span " + Std.int(Math.random() * 100));
-				trace(haxe.Timer.stamp() - t0);
-			}
-		}, "click");
+		var d3 = h("input[type=button].btn", "click");
 
 		document.body.appendChild(d1);
 		document.body.appendChild(d2);
@@ -69,7 +56,6 @@ class NvdTest {
 
 		var tee = Tee.create();
 		document.body.appendChild(tee);
-
 		document.body.appendChild(Bar.create());
 	}
 }

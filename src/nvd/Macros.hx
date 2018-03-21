@@ -55,22 +55,22 @@ private typedef DefInfo = {
 
 @:allow(Nvd)
 class Macros {
-	// used for Nvd.h("div#header.menu")
+	// for Nvd.h()
 	static function attrParse(e: Expr, attr): Expr {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			var name: String;
-			var p = CValid.ident(s, 0, s.length, CValid.is_alpha_u, CValid.is_anumx);
+			var p = CValid.ident(s, 0, s.length, CValid.is_alpha_u, CValid.is_anum); // no longer allow "." for tagname
 			if (p == 0) Context.error('Invalid TagName: "$s"', e.pos);
 			if (p == s.length) {
 				name = s.toUpperCase();
 			} else {
 				name = s.substr(0, p).toUpperCase();
-				nvd.p.PAttr.run(s, p, s.length, attr);
+				nvd.p.Attr.run(s, p, s.length, attr);
 			}
 			macro $v{name};
 		case EConst(CIdent(i)):
-			Context.warning('Only for tagName. Do not accept "[attr...]#id.class". Use "String Literal"', e.pos);
+			Context.warning('Note: parameter will be treated as tagname', e.pos);
 			macro $e.toUpperCase();
 		default:
 			Context.error("Unsupported type", e.pos);
@@ -523,7 +523,7 @@ class Macros {
 			}
 			subs = macro $a{a};
 		}
-		return macro nvd.Dt.make($v{xml.nodeName}, $v{attr}, null, $subs);
+		return macro nvd.Dt.make($v{xml.nodeName}, $v{attr}, $subs);
 	}
 
 	static function tag2mod(tagname: String, svg: Bool): String {

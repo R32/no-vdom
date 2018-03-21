@@ -2,7 +2,10 @@ package nvd.p;
 
 import csss.CValid.*;
 
-class PAttr {
+/**
+e.g: 'a[href="#"]#id.class1.class2' => {href:"#", id: "id", class: "class1 class2"}
+*/
+class Attr {
 
 	public static function run(s: String, pos: Int, max: Int, attr: haxe.DynamicAccess<String>): Void {
 		var classes = [];
@@ -80,7 +83,7 @@ class PAttr {
 		return pos;
 	}
 
-	public static inline function is_attr_first(c: Int) return is_alpha_u(c) || c == ":".code;
-	public static inline function un_double_quote(c) { return c != '"'.code; }
-	public static inline function un_single_quote(c) { return c != "'".code; }
+	static inline function is_attr_first(c: Int) return is_alpha_u(c) || c == ":".code;
+	static inline function un_double_quote(c) { return c != '"'.code; }
+	static inline function un_single_quote(c) { return c != "'".code; }
 }

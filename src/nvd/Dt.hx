@@ -7,17 +7,19 @@ import js.Browser.document;
 DOM Tools
 */
 @:native("dt") class Dt {
-
+	@:pure
 	@:native("h")
-	public static function make(name: String, a: Attr, ?p: Prop, ?dyn: Dynamic):DOMElement {
+	public static function make(name: String, ?attr: haxe.DynamicAccess<String>, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
-		if (a != null) a.update(dom);
+		if (attr != null) {
+			for (k in attr.keys())
+				dom.setAttribute(k, attr.get(k));
+		}
 		if (dyn != null) {
 			if (Std.is(dyn, String)) {
-				if (p == null) p = new Prop();
-				p.text = dyn;
+				setText(dom, dyn);
 			} else if (Std.is(dyn, Array)) {
-				if (subslen((dyn: Array<Dynamic>)) > 3) {
+				if (subslen((dyn: Array<Dynamic>)) > 5) {
 					document.createDocumentFragment().appendChild(dom);
 				}
 				for (v in (dyn: Array<Dynamic>)) {
@@ -29,7 +31,6 @@ DOM Tools
 				}
 			}
 		}
-		if (p != null) p.update(dom);
 		return dom;
 	}
 
@@ -112,52 +113,5 @@ DOM Tools
 		for (p in path)
 			dom = cast dom.children[p];
 		return dom;
-	}
-}
-
-
-@:forward
-@:dce private abstract Attr(haxe.DynamicAccess<String>) from Dynamic<String> to Dynamic<String> {
-
-	public inline function new() this = {};
-
-	public inline function update(dom: js.html.DOMElement) {
-		var v: String;
-		for (k in this.keys()) {
-			v = this.get(k);
-			Dt.setAttr(dom, k, v);
-		}
-	}
-}
-
-@:forward
-@:dce private abstract Prop(haxe.DynamicAccess<Any>) from Dynamic<Any> to Dynamic<Any> {
-
-	public inline function new() this = {};
-
-	public var text(get, set): String;
-	inline function get_text(): String return this.get("text");
-	inline function set_text(v: String): String return this.set("text", v);
-
-	public var html(get, set): String;
-	inline function get_html(): String return this.get("html");
-	inline function set_html(v: String): String return this.set("html", v);
-
-	public var style(get, set): haxe.DynamicAccess<Any>;
-	inline function get_style():haxe.DynamicAccess<Any> return this.get("style");
-	inline function set_style(v: haxe.DynamicAccess<Any>):haxe.DynamicAccess<Any> return this.set("style", v);
-
-	public inline function update(dom: DOMElement) {
-		for (k in this.keys()) {
-			switch (k) {
-			case "text": if (text != null) Dt.setText(dom, text);
-			case "html": if (html != null && dom.innerHTML != html) dom.innerHTML = html;
-			case "style": Dt.setStyle(dom, style);
-			default:
-				var value = this.get(k);
-				if (Reflect.field(dom, k) != value)
-					Reflect.setField(dom, k, this.get(k));
-			}
-		}
 	}
 }

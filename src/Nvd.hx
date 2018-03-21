@@ -26,17 +26,16 @@ class Nvd {
 	 ```
 	*/
 	macro public static function h(exprs: Array<Expr>) {
-		var vattr = {};
-		var name = nvd.Macros.attrParse(exprs[0], vattr);
-		var attr = Reflect.fields(vattr).length == 0 ? macro null : macro $v{ vattr };
-		var ret = [name, attr];
+		var attr = {};
+		var name = nvd.Macros.attrParse(exprs[0], attr);
+		var exprAttr = Reflect.fields(attr).length == 0 ? macro null : macro $v{attr};
+		var ret = [name, exprAttr];
 		if (exprs.length > 1) {
 			switch (exprs[1].expr) {
 			case ExprDef.EArrayDecl(_), ExprDef.EConst(_):
-				ret.push(macro null);
-				ret.push(exprs[1]);
+				ret.push(exprs[1]); // text, or subs
 			default:
-				for (i in 1...exprs.length) ret.push(exprs[i]);
+				Context.error("Unsupported type", exprs[1].pos);
 			}
 		}
 		return macro nvd.Dt.make($a{ret});
