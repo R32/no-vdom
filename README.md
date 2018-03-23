@@ -175,6 +175,7 @@ Demo.main();
 
 ## CHANGES
 
+* 0.3.2 simplify
 * 0.3.1 minor
 * 0.3.0 Added `Style(sel, cssname)`
 * 0.2.0 Allow keep css-selector in output.
