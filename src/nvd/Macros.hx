@@ -465,9 +465,8 @@ class Macros {
 
 	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<DefInfo>, path: Array<Int>): Expr {
 		var attr = new haxe.DynamicAccess<String>();
-		xml.remove("id");
 		for (aname in xml.attributes()) {
-			if (aname.charCodeAt(0) == ":".code) continue; // It's a posInfo
+			if (aname.charCodeAt(0) == ":".code || aname == "id") continue; // It's a posInfo or id
 			var value = xml.get(aname);
 			var av = HXX.parse(value);
 			var ap = file_pos.pos(xml.attrPos(aname), value.length);
