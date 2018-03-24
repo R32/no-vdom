@@ -88,22 +88,14 @@ class Nvd {
 		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
 
-	public static function buildString(es: haxe.macro.Expr, ?selector: ExprOf<String>, ?defs, create = true) {
+	public static function buildString(es: haxe.macro.Expr, ?defs, create = true) {
 		var txt = nvd.Macros.exprString(es);
-		var xml;
+		var root;
 		try {
-			xml = csss.xml.Xml.parse(txt).firstElement();
+			root = csss.xml.Xml.parse(txt).firstElement();
 		} catch(err: Dynamic) {
 			Context.error("Invalid Xml String", es.pos);
 		}
-		var css = null;
-		switch (selector.expr) {
-		case EConst(CIdent("null")), EConst(CString("")):
-		case EConst(CString(s)): css = s;
-		default: Context.error("[macro build]: Expected String", selector.pos);
-		}
-		var root = css == null ? xml : csss.Query.querySelector(xml, css);
-		if (root == null) Context.error('Invalid selector or Could not find: "$css"', selector.pos);
 		var fp = haxe.macro.PositionTools.getInfos(es.pos);
 		return nvd.Macros.make(root, defs, fp, create);
 	}

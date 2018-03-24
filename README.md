@@ -20,6 +20,7 @@ A haxelib for building HTML `macro components`:
 * issues:
   - can not recognize SVG Element which will be treated as a DOMElement.
   - Comment, CDATA and ProcessingInstruction cannot be included in HTML fragment. (will throw an error.)
+  - when you use `MyComponent.create()`, All returned Elements will not contain the **`id`** attribute.
 
 ## Demo
 

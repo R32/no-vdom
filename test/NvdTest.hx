@@ -79,7 +79,7 @@ class NvdTest {
 })) abstract Bar(nvd.Comp) {
 }
 
-@:build(Nvd.buildString('<div class="hehe hahs"><label> some thing <input type="text" value="no work!" /></label></div>', null, {
+@:build(Nvd.buildString('<div class="hehe hahs"><label> some thing <input type="text" value="no work!" /></label></div>', {
 	value: Prop("input", "value")
 })) abstract Tee(nvd.Comp) {
 }
