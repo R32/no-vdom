@@ -80,7 +80,7 @@ class Nvd {
 		var css = nvd.Macros.exprString(selector);
 		var xml = nvd.Macros.files.get(file);
 		if (xml == null) {
-			xml = csss.xml.Xml.parse(sys.io.File.getContent(file)).firstElement();
+			xml = csss.xml.Xml.parse(sys.io.File.getContent(file));
 			nvd.Macros.files.set(file, xml);
 		}
 		var root = csss.Query.querySelector(xml, css);
