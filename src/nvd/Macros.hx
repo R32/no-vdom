@@ -423,6 +423,9 @@ class Macros {
 		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
 		case EObjectDecl(a):
 			for (f in a) {
+				var prev = out.get(f.field);
+				if (prev != null)
+					Context.error("Duplicate definition", prev.own.pos);
 				switch (f.expr.expr) {
 				case ECall(fn, pa):
 					var da = getDOMAttr(top, pa[0]);
@@ -467,61 +470,69 @@ class Macros {
 		var attr = new haxe.DynamicAccess<String>();
 		for (aname in xml.attributes()) {
 			if (aname.charCodeAt(0) == ":".code || aname == "id") continue; // It's a posInfo or id
-			var value = xml.get(aname);
-			var av = HXX.parse(value);
-			var ap = file_pos.pos(xml.attrPos(aname), value.length);
-			if (av.length == 1) {
-				switch (av[0]) {
-				case Key(k):
-					var da: DOMAttr = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: path, pos: ap, css: null};
-					out.set(k, {own: da, name: aname, fct: ct_str, w: true, argt: Attr, usecss: false });
-				case Str(s, _):
-					attr.set(aname, s);
-				}
-			} else if (av.length > 1) {
-				Context.error("Do not supported currently", ap);
-			}
+			attr.set(aname, xml.get(aname));
 		}
-		var subs = macro null;
 		var children = @:privateAccess xml.children;
 		var len = children.length;
-		if (len == 1 && children[0].nodeType == PCData) {
-			var value = children[0].nodeValue;
-			var av = HXX.parse(value);
-			var ap = file_pos.pos(children[0].nodePos(), value.length);
-			if (av.length == 1) {
-				switch (av[0]) {
-				case Key(k):
-					var da: DOMAttr = {xml: xml, ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG"), path: path, pos: ap, css: null};
-					out.set(k, {own: da, name: "text", fct: ct_str, w: true, argt: Prop, usecss: false }); // custom prop "text"
-					subs = macro $v{k};
-				case Str(s, _):
-					subs = macro $v{s};
+		var subpath: Array<Int> = null;
+		var exprs = [];
+		var i = 0, j = 0;
+		while (i < len) {
+			var child = children[i];
+			if (child.nodeType == Element) {
+				subpath = path.slice(0);
+				subpath.push(j);
+				exprs.push(xmlParse(child, out, subpath));
+				++ j;
+			} else if (child.nodeType == PCData) {
+				if (child.nodeValue != "")
+					exprs.push(macro $v{child.nodeValue});
+			/* it works, but the "{{value}}" must be initialized when you call `New`
+				var textpos = file_pos.pos(child.nodePos(), child.nodeValue.length);
+				var hxx = HXX.parse(child.nodeValue);
+				if (hxx.length == 1) {
+					switch (hxx[0]) {
+					case Variable(k, opt):
+						var node: Xml;
+						var argtype: DefType;
+						if (i == 0 && len == 1) {
+							node = xml;
+							argtype = Prop;
+							subpath = path;
+						} else {  // len > 1
+							subpath = path.slice(0);
+							subpath.push(j);
+							if (i == 0) {
+								node = children[i + 1];
+								argtype = TextPrev;
+							} else {
+								node = children[i - 1];
+								argtype = TextNext;
+							}
+						}
+						exprs.push(macro $v{opt == null ? k : opt});
+						var da: DOMAttr = {xml: node, path: subpath, pos: textpos, css: null , ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG")};
+						if (out.exists(k))
+							Context.error("Duplicate definition", textpos);
+						out.set(k, {own: da, argt: argtype, name: "textContext", fct: ct_str, w: true, usecss: false});
+					case Text(s):
+						exprs.push(macro $v{s});
+					}
+
+				} else if (hxx.length > 1) {
+					Context.error("Unsupported yet", textpos);
 				}
-			} else if (av.length > 1) {
-				Context.error("Do not supported currently", ap);
+			*/
+			} else {
+				Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", file_pos.xml(child));
 			}
-		} else if(len > 0) {
-			var a = [];
-			var i = 0, j = 0;
-			while (i < len) {
-				var child = children[i];
-				var sp = path.slice(0); // copy
-				sp.push(j);
-				if (child.nodeType == Element) {
-					a.push(xmlParse(child, out, sp));
-					++ j;
-				} else if (child.nodeType == PCData) {
-					var value = child.nodeValue;
-					if (CValid.until(value, 0, value.length, CValid.is_space) < value.length)  // skip spaces text node
-						a.push(macro $v{value.split("\r\n").join("\n")});                      // replace "\r\n" to "\n"
-				} else {
-					Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Template, it will cause some issues in IE8.", file_pos.xml(child));
-				}
-				++ i;
-			}
-			subs = macro $a{a};
+			++i;
 		}
+		var subs: Expr;
+		if (exprs.length == 0)
+			subs = macro null;
+		else
+			subs = len == 1 && children[0].nodeType == PCData ? exprs[0] : macro $a{exprs};
 		return macro nvd.Dt.make($v{xml.nodeName}, $v{attr}, $subs);
 	}
 

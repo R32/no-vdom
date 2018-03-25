@@ -2,83 +2,107 @@ package nvd.p;
 
 import csss.CValid.*;
 
-enum HVal {
-	Key(k: String);
-	Str(s: String, isSpaces: Bool);
+enum HXXVal {
+	Variable(k: String, ?d: String);
+	Text(s: String);
 }
 
 @:enum private abstract State(Int) to Int {
 	var BEGIN = 0;
 	var BRACE = 1;
+	var OP_OR = 2;
 }
 
 class HXX {
 
-	public static function parse(str: String, pos = 0, max = -1): Array<HVal> {
+	public static function parse(str: String, pos = 0, max = -1): Array<HXXVal> {
 
-		inline function IGNORE_SPACES() pos = ignore_space(str, pos, max);
 		inline function char(p) return StringTools.fastCodeAt(str, p);
-		inline function charAt(p) return str.charAt(p);
-
-		var left = pos;
-		inline function substr() return str.substr(left, pos - left);
-		var S = BEGIN;
-		var all_spaces = true;
-		inline function RESET() { S = BEGIN; all_spaces = true; left = pos + 1; }
 
 		var ret = [];
+		var S = BEGIN;
 		var c: Int;
+		var all_space = true;
+		var t_var = "";
+		var t_var_d = null;
 		if (max == -1) max = str.length;
+		var left = pos;
+		var i = 0;         // index for ret
+		var START = pos;   // for restore
 		while (pos < max) {
 			switch (S) {
 			case BEGIN:
 				c = char(pos);
-				switch (c) {
-				case "{".code:
-					if (pos > left) ret.push(Str(substr(), all_spaces));
+				if (c == "{".code && char(pos + 1) == "{".code) {
+					if (pos > left && !all_space) {
+						ret.push(Text(str.substring(left, pos)));
+					}
+					pos += 2;
 					S = BRACE;
-				default:
-					if (all_spaces && !is_space(c)) all_spaces = false;
+					continue;
+				} else if (all_space && !is_space(c)) {
+					all_space = false;
 				}
 			case BRACE:
-				IGNORE_SPACES();
-				left = pos;
-				pos = ident(str, pos, max, is_alpha_u, is_anu);
-				if (pos == left) throw pos;   // InvalidChar
-				ret.push(Key(substr()));
-				IGNORE_SPACES();
+				left = ignore_space(str, pos, max);
+				pos = ident(str, left, max, is_alpha_u, is_anu);
+				if (pos > left) t_var = str.substring(left, pos);
+				S = OP_OR;
+				continue;
+			case OP_OR:
+				pos = ignore_space(str, pos, max);
 				c = char(pos);
-				if (c != "}".code) throw pos; // Expected "}"
-				RESET();
+				if (c == "}".code && char(pos + 1) == "}".code) {
+					if (t_var != "") {
+						ret.push(Variable(t_var, t_var_d));
+						t_var = "";
+					}
+					t_var_d = null;
+					all_space = true;
+					i = ret.length;  // update
+					S = BEGIN;
+					pos += 2;
+					left = pos;
+					START = left;
+					continue;
+				} else if (t_var_d == null && c == "|".code && char(pos + 1) == "|".code) {
+					left = ignore_space(str, pos + 2, max);
+					c = char(left);
+					switch (c) {
+					case '"'.code:
+						pos = until(str, left + 1, max, @:privateAccess Attr.un_double_quote);
+						if (pos < max) {
+							t_var_d = str.substring(left + 1, pos);
+						}
+					case "'".code:
+						pos = until(str, left + 1, max, @:privateAccess Attr.un_single_quote);
+						if (pos < max) {
+							t_var_d = str.substring(left + 1, pos);
+						}
+					default:
+						pos = until(str, left, max, to_end);
+						if (pos < max) {
+							t_var_d = str.substring(left, pos);
+						}
+						continue;
+					}
+				} else {
+					// discard & restore as text
+					while (ret.length > i) ret.pop();
+					left = START;
+					t_var = "";
+					t_var_d = null;
+					all_space = false;
+					S = BEGIN;
+					continue;
+				}
 			}
 			++ pos;
 		}
-		if (pos > left) ret.push(Str(substr(), all_spaces));
-
-		// trims
-		var len = ret.length;
-		if (len > 1) {
-			var p = 0;
-			while (p < len) {
-				switch (ret[p]) {
-				case Str(_, true):
-					++ p;
-					continue;
-				default:
-				}
-				break;
-			}
-			while (len > p) {
-				switch (ret[len-1]) {
-				case Str(_, true):
-					-- len;
-					continue;
-				default:
-				}
-				break;
-			}
-			ret = ret.slice(p, len);
-		}
+		if (pos > left && !all_space)
+			ret.push(Text((str.substring(left, pos))));
 		return ret;
 	}
+
+	static function to_end(c) return !(c <= " ".code || c == "}".code);
 }

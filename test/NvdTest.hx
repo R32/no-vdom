@@ -3,9 +3,37 @@ package test;
 import js.Browser.document;
 import js.Browser.console;
 import Nvd.h;
+import nvd.p.HXX;
 
 class NvdTest {
+	static function test_hxx() {
+		var str = " this is a {{pen}}, it comes from {{ city || 'bei jing' }}.";
+		var x = HXX.parse(str, 0);
+		function eq(v, str:String, ?opt: String, ?pos: haxe.PosInfos) {
+			var r = false;
+			switch (v) {
+			case Variable(a, d):
+				r = a == str && d == opt;
+			case Text(s):
+				r = s == str;
+			}
+			if (r == false) throw new js.Error("haxe line: " + pos.lineNumber);
+		}
+		eq(x[0], " this is a ");
+		eq(x[1], "pen", null);
+		eq(x[2], ", it comes from ");
+		eq(x[3], "city", "bei jing");
+		eq(x[4], ".");
+		var str = " other {{ some {{ one }} xxxx {{ two || hehehe }}   ";
+		var x = HXX.parse(str);
+		eq(x[0], " other {{ some ");
+		eq(x[1], "one", null);
+		eq(x[2], " xxxx ");
+		eq(x[3], "two", "hehehe");
+		trace("HXX is done!");
+	}
 	static function main() {
+		test_hxx();
 		var d1 = h("div.red.some", [
 
 			h("label", [
@@ -43,16 +71,17 @@ class NvdTest {
 		document.body.appendChild(d3);
 
 		var foo = new Foo(document.querySelector("div.flex-table"));
-		console.log(foo.input);
-		console.log(foo.value);
-		console.log(foo.title);
+		trace(foo.value);
+		trace(foo.title);
 		foo.value = "a b c";
 		foo.title = "Greeting";
 
+
 		var bar: Bar = Bar.ofSelector("div.template-1");
-		console.log(bar.x);
-		console.log(bar.y);
-		console.log(bar.text);
+		trace(bar.x);
+		trace(bar.y);
+		trace(bar.text);
+		trace(bar.text_node.nodeValue);
 
 		var tee = Tee.create();
 		document.body.appendChild(tee);
@@ -76,10 +105,11 @@ class NvdTest {
 	cls:   Prop("a", "className"),   // same as ".template-1 a".className})) abstract Bar(nvd.Comp) to nvd.Comp {
 	x: Prop("", "offsetLeft"),       // same as ".template-1".offsetLeft}
 	y: Prop([], "offsetTop"),        // same as ".template-1".offsetTop}
+	text_node: Prop("a", "previousSibling"),
 })) abstract Bar(nvd.Comp) {
 }
 
-@:build(Nvd.buildString('<div class="hehe hahs"><label> some thing <input type="text" value="no work!" /></label></div>', {
+@:build(Nvd.buildString('<div class="hehe hahs"><label> some thing <input type="text" value="no work!" /></label><span></span></div>', {
 	value: Prop("input", "value")
 })) abstract Tee(nvd.Comp) {
 }
