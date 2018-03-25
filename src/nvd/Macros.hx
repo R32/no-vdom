@@ -123,7 +123,7 @@ class Macros {
 		case TInst(r, _):
 			var c: ClassType = r.get();
 			while (true) {
-				if (!(c.pack[0] == "js" && c.pack[1] == "html")) break; // limit in "js.html"
+				if (c.module == stop || c.module.substr(0, 7) != "js.html") break;
 				var fs = c.fields.get();
 				for (f in fs) {
 					switch (f.kind) {
@@ -132,7 +132,7 @@ class Macros {
 					default:
 					}
 				}
-				if (stop != null && c.superClass != null && c.superClass.t.toString() != stop) {
+				if (c.superClass != null) {
 					c = c.superClass.t.get();
 				} else {
 					break;
