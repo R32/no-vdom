@@ -19,9 +19,6 @@ DOM Tools
 			if (Std.is(dyn, String)) {
 				setText(dom, dyn);
 			} else if (Std.is(dyn, Array)) {
-				if (subslen((dyn: Array<Dynamic>)) > 5) {
-					document.createDocumentFragment().appendChild(dom);
-				}
 				for (v in (dyn: Array<Dynamic>)) {
 					if (Std.is(v, String)) {
 						dom.appendChild(document.createTextNode(v));
@@ -32,16 +29,6 @@ DOM Tools
 			}
 		}
 		return dom;
-	}
-
-	static function subslen(subs: Array<Dynamic>): Int {
-		var len = subs != null ? subs.length : 0;
-		for	(v in subs) {
-			if (v.childNodes != null && v.childNodes.length > 0) {
-				len += subslen(v.childNodes);
-			}
-		}
-		return len;
 	}
 
 	public static function setAttr(dom: DOMElement, name: String, value: String): String {
