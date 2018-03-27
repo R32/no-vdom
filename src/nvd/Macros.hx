@@ -109,12 +109,12 @@ class Macros {
 	static function initBase() {
 		if (fdom != null) return;
 		fdom = new Map();
-		fdom.set("text", { ct: ct_str, ac: AccNormal });                  // custom prop
+		fdom.set("text", { ct: ct_str, ac: AccNormal });                // custom prop
 		fdom.set("html", { ct: ct_str, ac: AccNormal } );
 		extractFVar(fdom, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 
 		fstyle = new Map();
-		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), null);
+		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), "");
 	}
 
 	// only for js.html.*Element, Does not contain the type specified by the "stop"
@@ -132,7 +132,7 @@ class Macros {
 					default:
 					}
 				}
-				if (c.superClass != null) {
+				if (stop != "" && c.superClass != null) {
 					c = c.superClass.t.get();
 				} else {
 					break;
@@ -208,8 +208,8 @@ class Macros {
 		}
 
 		var infos: haxe.DynamicAccess<DefInfo> = {};
-		var ecreate = xmlParse(root, infos, []);  // parse data from XML => infos
 		if (create && !all_fds.exists("create")) {
+			var ecreate = xmlParse(root, infos, []);  // parse data from XML => infos
 			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
 			fields.push({
 				name: "create",
@@ -485,44 +485,9 @@ class Macros {
 				exprs.push(xmlParse(child, out, subpath));
 				++ j;
 			} else if (child.nodeType == PCData) {
+				// discard HXX.parse
 				if (child.nodeValue != "")
 					exprs.push(macro $v{child.nodeValue});
-			/* it works, but the "{{value}}" must be initialized when you call `New`
-				var textpos = file_pos.pos(child.nodePos(), child.nodeValue.length);
-				var hxx = HXX.parse(child.nodeValue);
-				if (hxx.length == 1) {
-					switch (hxx[0]) {
-					case Variable(k, opt):
-						var node: Xml;
-						var argtype: DefType;
-						if (i == 0 && len == 1) {
-							node = xml;
-							argtype = Prop;
-							subpath = path;
-						} else {  // len > 1
-							subpath = path.slice(0);
-							subpath.push(j);
-							if (i == 0) {
-								node = children[i + 1];
-								argtype = TextPrev;
-							} else {
-								node = children[i - 1];
-								argtype = TextNext;
-							}
-						}
-						exprs.push(macro $v{opt == null ? k : opt});
-						var da: DOMAttr = {xml: node, path: subpath, pos: textpos, css: null , ct: tag2ctype(xml.nodeName, xml.nodeName == "SVG")};
-						if (out.exists(k))
-							Context.error("Duplicate definition", textpos);
-						out.set(k, {own: da, argt: argtype, name: "textContext", fct: ct_str, w: true, usecss: false});
-					case Text(s):
-						exprs.push(macro $v{s});
-					}
-
-				} else if (hxx.length > 1) {
-					Context.error("Unsupported yet", textpos);
-				}
-			*/
 			} else {
 				Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", file_pos.xml(child));
 			}

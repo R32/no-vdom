@@ -26,11 +26,39 @@ hello world
 
 <div class="template-1">
   <p>Lorem ipsum dolor sit</p>
-  <p>
-    amet consectetuer
-    <a href="#" title="Greeting">hi</a>
+  <p> amet consectetuer <a href="#" title="Greeting">hi</a>
   </p>
 </div>
+<div class="empty"></div>
+<div id="prevnext">
+previousSibling
+<a href="#">Element</a>
+nextSibling
+</div>
+<!--[if lt IE 9]>
+<script type="text/javascript">
+if (Object.defineProperty
+  && Object.getOwnPropertyDescriptor
+  && Object.getOwnPropertyDescriptor(Element.prototype, "textContent")
+  && !Object.getOwnPropertyDescriptor(Element.prototype, "textContent").get) {
+  (function() {
+    var innerText = Object.getOwnPropertyDescriptor(Element.prototype, "innerText");
+    Object.defineProperty(Element.prototype, "textContent",
+     // Passing innerText or innerText.get directly does not work,
+     // wrapper function is required.
+      {
+        get: function() {
+          return innerText.get.call(this);
+        },
+        set: function(s) {
+         return innerText.set.call(this, s);
+        }
+      }
+    );
+  })()
+}
+</script>
+<![endif]-->
 <script type="text/javascript" src="test.js"></script>
 </body>
 </html>
