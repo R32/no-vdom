@@ -20,8 +20,11 @@ private abstract XmlPos({file: String, min: Int}) from {file: String, min: Int} 
 		min: this.min + p,
 		max: this.min + p + w
 	});
-
+#if (csss >= "0.3.2")
+	public inline function xml(x: csss.xml.Xml) return pos(x.nodePos, x.nodeName.length);
+#else
 	public inline function xml(x: csss.xml.Xml) return pos(x.nodePos(), x.nodeName.length);
+#end
 }
 
 private typedef DOMAttr = {
@@ -468,10 +471,20 @@ class Macros {
 
 	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<DefInfo>, path: Array<Int>): Expr {
 		var attr = new haxe.DynamicAccess<String>();
+	#if (csss >= "0.3.2")
+		var a: Array<String> = @:privateAccess xml.attributeMap;
+		var i = 0;
+		while (i < a.length) {
+			attr.set(a[i], a[i + 1]);
+			i += 2;
+		}
+		attr.remove("id");
+	#else
 		for (aname in xml.attributes()) {
 			if (aname.charCodeAt(0) == ":".code || aname == "id") continue; // It's a posInfo or id
 			attr.set(aname, xml.get(aname));
 		}
+	#end
 		var children = @:privateAccess xml.children;
 		var len = children.length;
 		var subpath: Array<Int> = null;
