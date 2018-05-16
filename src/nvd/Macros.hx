@@ -621,7 +621,7 @@ class Macros {
 		"TBODY"      : "TableSectionElement",
 		"TFOOT"      : "TableSectionElement",
 	//	"TEMPLATE"   : "TemplateElement",
-	//	"TEXTAREA"   : "TextAreaElement",
+		"TEXTAREA"   : "TextAreaElement",
 	//	"TITLE"      : "TitleElement",
 	//	"TRACK"      : "TrackElement",
 		"UL"         : "UListElement",
