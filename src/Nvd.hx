@@ -76,11 +76,22 @@ class Nvd {
 	foo.|
 	```
 	*/
-	public static function build(file: String, selector: ExprOf<String>, ?defs, create = true) {
+	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, create = true) {
+		var file = nvd.Macros.exprString(efile);
 		var css = nvd.Macros.exprString(selector);
 		var xml = nvd.Macros.files.get(file);
 		if (xml == null) {
-			xml = csss.xml.Xml.parse(sys.io.File.getContent(file));
+			try {
+				xml = csss.xml.Xml.parse(sys.io.File.getContent(file));
+			} catch(err: csss.xml.Parser.XmlParserException) {
+				Context.error(err.toString(), haxe.macro.PositionTools.make({
+					file: file,
+					min: err.position,
+					max: err.position + 1
+				}));
+			} catch (err: Dynamic) {
+				Context.error(Std.string(err), efile.pos);
+			}
 			nvd.Macros.files.set(file, xml);
 		}
 		var root = csss.Query.querySelector(xml, css);
@@ -88,15 +99,18 @@ class Nvd {
 		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
 
-	public static function buildString(es: haxe.macro.Expr, ?defs, create = true) {
+	public static function buildString(es: ExprOf<String>, ?defs, create = true) {
 		var txt = nvd.Macros.exprString(es);
-		var root;
-		try {
-			root = csss.xml.Xml.parse(txt).firstElement();
-		} catch(err: Dynamic) {
-			Context.error("Invalid Xml String", es.pos);
-		}
 		var fp = haxe.macro.PositionTools.getInfos(es.pos);
+		fp.min += 1; // the 1 width of the quotes
+		var root =
+		try {
+			csss.xml.Xml.parse(txt).firstElement();
+		} catch (err: csss.xml.Parser.XmlParserException) {
+			fp.min += err.position;
+			fp.max = fp.min + 1;
+			Context.error(err.toString(), haxe.macro.PositionTools.make(fp));
+		}
 		return nvd.Macros.make(root, defs, fp, create);
 	}
 #end
