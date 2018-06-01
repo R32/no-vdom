@@ -12,19 +12,22 @@ DOM Tools
 	public static function make(name: String, ?attr: haxe.DynamicAccess<String>, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (attr != null) {
-			for (k in attr.keys())
-				dom.setAttribute(k, attr.get(k));
+			//for (k in attr.keys()) dom.setAttribute(k, attr.get(k));
+			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 		}
 		if (dyn != null) {
 			if (Std.is(dyn, String)) {
 				setText(dom, dyn);
 			} else if (Std.is(dyn, Array)) {
-				for (v in (dyn: Array<Dynamic>)) {
+				var i = 0;
+				while (i < dyn.length) {
+					var v: Dynamic = dyn[i];
 					if (Std.is(v, String)) {
 						dom.appendChild(document.createTextNode(v));
 					} else { // if (Std.is(v, js.html.Node)) { // TODO: IE8 doesn't support "Node"
 						dom.appendChild(v);
 					}
+					++ i;
 				}
 			}
 		}
