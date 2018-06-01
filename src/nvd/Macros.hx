@@ -31,7 +31,7 @@ private typedef DOMAttr = {
 	xml: Xml,                 // the DOMElement
 	ct: ComplexType,          // parsed ComplexType by xml.tagName. If unrecognized, default is `:js.html.DOMElement`
 	path: Array<Int>,         // relative to root
-	pos: haxe.macro.Position, // the pos of first parameter of DefType
+	pos: haxe.macro.Position, // the first parameter of DefType
 	css: String               // css selector which is used to finding it from root DOMElement.
 }
 
@@ -120,7 +120,7 @@ class Macros {
 		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), "");
 	}
 
-	// only for js.html.*Element, Does not contain the type specified by the "stop"
+	// only for js.html.*Element
 	static function extractFVar(out: Map<String, FCType>, type: Type, stop = "js.html.Element"): Void {
 		switch (type) {
 		case TInst(r, _):
@@ -210,9 +210,8 @@ class Macros {
 			});
 		}
 
-		var infos: haxe.DynamicAccess<DefInfo> = {};
 		if (create && !all_fds.exists("create")) {
-			var ecreate = xmlParse(root, infos, []);  // parse data from XML => infos
+			var ecreate = xmlParse(root);
 			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
 			fields.push({
 				name: "create",
@@ -226,8 +225,8 @@ class Macros {
 			});
 		}
 
-		argParse(root, defs, infos);              // parse data by defs => infos
-
+		var infos = new Map<String, DefInfo>();
+		argParse(root, defs, infos);          // parse defs => infos
 		for (k in infos.keys()) {
 			var v = infos.get(k);
 			var aname = v.name;
@@ -371,8 +370,8 @@ class Macros {
 				if (col[i].nodeType == Element) {
 					if (col[i] == xml) ret.push(ei);
 					++ ei;
-				} else if (col[i].nodeType != PCData) { // (#CData, #ProcessingInstruction => #comment) in IE8
-					throw "Error has been reported by xmlParse.";
+				} else if (col[i].nodeType != PCData) {
+					Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", file_pos.xml(col[i]));
 				}
 				++ i;
 			}
@@ -421,7 +420,7 @@ class Macros {
 		return {xml: x, ct: ct, path: path, pos: pa0.pos, css: css};
 	}
 
-	static function argParse(top: Xml, defs: Expr, out:haxe.DynamicAccess<DefInfo>) {
+	static function argParse(top: Xml, defs: Expr, out:Map<String, DefInfo>) {
 		switch (defs.expr) {
 		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
 		case EObjectDecl(a):
@@ -469,7 +468,7 @@ class Macros {
 		}
 	}
 
-	static function xmlParse(xml: Xml, out: haxe.DynamicAccess<DefInfo>, path: Array<Int>): Expr {
+	static function xmlParse(xml: Xml): Expr {
 		var attr = new haxe.DynamicAccess<String>();
 	#if (csss >= "0.3.2")
 		var a: Array<String> = @:privateAccess xml.attributeMap;
@@ -487,15 +486,12 @@ class Macros {
 	#end
 		var children = @:privateAccess xml.children;
 		var len = children.length;
-		var subpath: Array<Int> = null;
 		var exprs = [];
 		var i = 0, j = 0;
 		while (i < len) {
 			var child = children[i];
 			if (child.nodeType == Element) {
-				subpath = path.slice(0);
-				subpath.push(j);
-				exprs.push(xmlParse(child, out, subpath));
+				exprs.push(xmlParse(child));
 				++ j;
 			} else if (child.nodeType == PCData) {
 				// discard HXX.parse
