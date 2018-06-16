@@ -468,6 +468,7 @@ class Macros {
 		}
 	}
 
+	// Since HXX has been deprecated, this function becomes unimportant.
 	static function xmlParse(xml: Xml): Expr {
 		var attr = new haxe.DynamicAccess<String>();
 	#if (csss >= "0.3.2")
