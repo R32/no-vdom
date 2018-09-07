@@ -1,6 +1,6 @@
 -dce full
--cp src
--main test.NvdTest
+-cp ../src
+-main NvdTest
 -lib csss
 # -debug
 -D analyzer-optimize

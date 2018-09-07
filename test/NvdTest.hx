@@ -1,4 +1,4 @@
-package test;
+package;
 
 import js.Browser.document;
 import js.Browser.console;
@@ -62,6 +62,7 @@ class NvdTest {
 			])
 		]);
 
+
 		var d2 = h("input", "input test");
 
 		var d3 = h("input[type=button].btn", "click");
@@ -75,7 +76,6 @@ class NvdTest {
 		trace(foo.title);
 		foo.value = "a b c";
 		foo.title = "Greeting";
-
 
 		var bar: Bar = Bar.ofSelector("div.template-1");
 		trace(bar.x);

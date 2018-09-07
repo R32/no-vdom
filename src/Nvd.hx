@@ -3,6 +3,9 @@ package;
 #if macro
 import haxe.macro.Expr;
 import haxe.macro.Context;
+import haxe.macro.PositionTools;
+import nvd.Macros.exprString as string;
+import nvd.Macros.files;
 #end
 
 class Nvd {
@@ -41,27 +44,9 @@ class Nvd {
 		return macro nvd.Dt.make($a{ret});
 	}
 
-	/**
-	 for create TextNode.
-	*/
-	macro public static function text(text: ExprOf<String>) {
-		return macro js.Browser.document.createTextNode($text);
-	}
-
 #if macro
 	/*
 	example:
-
-	```xml
-	<div class="template-1">              <!-- epath: [] -->
-	  <p>Lorem ipsum dolor sit</p>           <!-- epath: [0] -->
-	  <p>                                    <!-- epath: [1] -->
-	    amet consectetuer                      <!-- epath: None   -->
-	    <a href="#" title="Greeting">hi</a>    <!-- epath: [1, 0] -->
-	  </p>
-	</div>
-	 ```
-
 	```hx
 	Nvd.build("file/to/index.html", ".template-1", {
 	    link:  Elem("a"),                // or Elem([1, 0]). same as CSS(".template-1 a")
@@ -77,14 +62,14 @@ class Nvd {
 	```
 	*/
 	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, create = true) {
-		var file = nvd.Macros.exprString(efile);
-		var css = nvd.Macros.exprString(selector);
-		var xml = nvd.Macros.files.get(file);
+		var file = string(efile);
+		var css = string(selector);
+		var xml = files.get(file);
 		if (xml == null) {
 			try {
 				xml = csss.xml.Xml.parse(sys.io.File.getContent(file));
 			} catch(err: csss.xml.Parser.XmlParserException) {
-				Context.error(err.toString(), haxe.macro.PositionTools.make({
+				Context.error(err.toString(), PositionTools.make({
 					file: file,
 					min: err.position,
 					max: err.position + 1
@@ -92,7 +77,7 @@ class Nvd {
 			} catch (err: Dynamic) {
 				Context.error(Std.string(err), efile.pos);
 			}
-			nvd.Macros.files.set(file, xml);
+			files.set(file, xml);
 		}
 		var root = csss.Query.querySelector(xml, css);
 		if (root == null) Context.error('Invalid selector or Could not find: "$css"', selector.pos);
@@ -100,16 +85,15 @@ class Nvd {
 	}
 
 	public static function buildString(es: ExprOf<String>, ?defs, create = true) {
-		var txt = nvd.Macros.exprString(es);
-		var fp = haxe.macro.PositionTools.getInfos(es.pos);
+		var txt = string(es);
+		var fp = PositionTools.getInfos(es.pos);
 		fp.min += 1; // the 1 width of the quotes
-		var root =
-		try {
+		var root = try {
 			csss.xml.Xml.parse(txt).firstElement();
 		} catch (err: csss.xml.Parser.XmlParserException) {
 			fp.min += err.position;
 			fp.max = fp.min + 1;
-			Context.error(err.toString(), haxe.macro.PositionTools.make(fp));
+			Context.error(err.toString(), PositionTools.make(fp));
 		}
 		return nvd.Macros.make(root, defs, fp, create);
 	}

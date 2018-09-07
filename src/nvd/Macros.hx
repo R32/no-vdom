@@ -20,11 +20,7 @@ private abstract XmlPos({file: String, min: Int}) from {file: String, min: Int} 
 		min: this.min + p,
 		max: this.min + p + w
 	});
-#if (csss >= "0.3.2")
 	public inline function xml(x: csss.xml.Xml) return pos(x.nodePos, x.nodeName.length);
-#else
-	public inline function xml(x: csss.xml.Xml) return pos(x.nodePos(), x.nodeName.length);
-#end
 }
 
 private typedef DOMAttr = {
@@ -87,14 +83,14 @@ class Macros {
 	// collections of complexType by tagname
 	static var ct_maps = new Map<String, ComplexType>();  // full_name => ComplexType
 	static function cachedCType(t: Type): ComplexType {
-		var ret: ComplexType;
-		var name = null;
-		switch (t) {
+		var ret: ComplexType = null;
+		var name = switch (t) {
 		case TInst(r, _):
-			name = r.toString();
+			r.toString();
 		case TAbstract(r, _):
-			name = r.toString();
+			r.toString();
 		default:
+			null;
 		}
 		if (name != null) ret = ct_maps.get(name);
 		if (ret == null) {
@@ -112,7 +108,7 @@ class Macros {
 	static function initBase() {
 		if (fdom != null) return;
 		fdom = new Map();
-		fdom.set("text", { ct: ct_str, ac: AccNormal });                // custom prop
+		fdom.set("text", { ct: ct_str, ac: AccNormal });                // custom property
 		fdom.set("html", { ct: ct_str, ac: AccNormal } );
 		extractFVar(fdom, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 
@@ -142,7 +138,7 @@ class Macros {
 				}
 			}
 		default:
-			Context.error("Unsupported type", haxe.macro.PositionTools.here());
+			Context.error("Unsupported type", PositionTools.here());
 		}
 	}
 
@@ -151,17 +147,16 @@ class Macros {
 		initBase();
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
-		var cls_path;
-		switch (cls.kind) {
+		var cls_path = switch (cls.kind) {
 		case KAbstractImpl(_.get() => c):
-			cls_path = {pack: c.pack, name: c.name};
 			if (c.type.toString() != "nvd.Comp")
-				Context.error('[macro build]: Only for abstract ${cls_path.name}(nvd.Comp) ...', pos);
+				Context.error('[macro build]: Only for abstract ${c.name}(nvd.Comp) ...', pos);
+			{pack: c.pack, name: c.name};
 		default:
 			Context.error('[macro build]: Only for abstract type', pos);
 		}
 		var fields = Context.getBuildFields();
-		var all_fds = new haxe.ds.StringMap<Bool>();
+		var all_fds = new Map<String, Bool>();
 		for (f in fields) {
 			all_fds.set(f.name, true);
 		}
@@ -209,7 +204,6 @@ class Macros {
 				})
 			});
 		}
-
 		if (create && !all_fds.exists("create")) {
 			var ecreate = xmlParse(root);
 			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
@@ -230,20 +224,17 @@ class Macros {
 		for (k in infos.keys()) {
 			var v = infos.get(k);
 			var aname = v.name;
-			var elook = "lookup" + v.own.path.length;
-			var edom: Expr;
-			if (v.usecss && v.own.css != null && v.own.css != "") {
-				edom = macro cast d.querySelector($v{v.own.css});
+			var edom  = if (v.usecss && v.own.css != null && v.own.css != "") {
+				macro cast d.querySelector($v{v.own.css});
 			} else {
-				edom = v.own.path.length < 6 // see Comp::lookup
-					? macro @:privateAccess cast this.$elook($a{ (v.own.path: Array<Int>).map(function(i){return macro $v{i}}) })
-					: macro @:privateAccess cast this.lookup($v{ v.own.path } );
+				v.own.path.length < 6
+				? exprChildren(v.own.path, v.own.pos)
+				: macro @:privateAccess cast this.lookup( $v{ v.own.path } );
 			}
 			edom = {  // same as: (cast this.lookup(): SomeElement)
 				expr: ECheckType(edom, v.own.ct),
 				pos : edom.pos
 			};
-
 			fields.push({
 				name: k,
 				access: [APublic],
@@ -317,6 +308,12 @@ class Macros {
 		default:
 		}
 		return pass;
+	}
+
+	static function exprChildren(a: Array<Int>, pos) {
+		return a.length > 0
+		? {expr: ECast(Context.parseInlineString("d.children[" + a.join("].children[") + "]", pos), null), pos: pos}
+		: macro cast this;
 	}
 
 	static function exprString(e: Expr): String {
@@ -430,31 +427,31 @@ class Macros {
 					Context.error("Duplicate definition", prev.own.pos);
 				switch (f.expr.expr) {
 				case ECall(fn, pa):
-					var da = getDOMAttr(top, pa[0]);
-					inline function isUseCss(n) return da.css != null && pa.length > n && exprBool(pa[n]);
+					var own = getDOMAttr(top, pa[0]);
+					inline function isUseCss(n) return own.css != null && pa.length > n && exprBool(pa[n]);
 					switch (fn.expr) {
 					case EConst(CIdent("Elem")):
-						out.set(f.field, {argt: Elem, own: da, name: null, w: false, fct: da.ct, usecss: isUseCss(1)});
+						out.set(f.field, {argt: Elem, own: own, name: null, w: false, fct: own.ct, usecss: isUseCss(1)});
 
 					case EConst(CIdent("Attr")):
-						out.set(f.field, {argt: Attr, own: da, name: exprString(pa[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
+						out.set(f.field, {argt: Attr, own: own, name: exprString(pa[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
 
 					case EConst(CIdent("Prop")):
 						var aname = exprString(pa[1]);
 						var fc = fdom.get(aname);
 						if (fc == null) {
-							var elem = fdom_ex.get(da.xml.nodeName);
+							var elem = fdom_ex.get(own.xml.nodeName);
 							if (elem != null)
 								fc = elem.get(aname);
 						}
-						if (fc == null) Context.error('${da.xml.nodeName} has no field "$aname"', pa[1].pos);
-						out.set(f.field, {argt: Prop, own: da, name: aname, w: fc.ac == AccNormal && simpleValid(da.xml, aname), fct: fc.ct, usecss: isUseCss(2)});
+						if (fc == null) Context.error('${own.xml.nodeName} has no field "$aname"', pa[1].pos);
+						out.set(f.field, {argt: Prop, own: own, name: aname, w: fc.ac == AccNormal && simpleValid(own.xml, aname), fct: fc.ct, usecss: isUseCss(2)});
 
 					case EConst(CIdent("Style")):
 						var cname = exprString(pa[1]);
 						var fc = fstyle.get(cname);
 						if (fc == null) Context.error('js.html.CSSStyleDeclaration has no field "$cname"', pa[1].pos);
-						out.set(f.field, {argt: Style, own: da, name: cname, w: fc.ac == AccNormal, fct: fc.ct, usecss: isUseCss(2)});
+						out.set(f.field, {argt: Style, own: own, name: cname, w: fc.ac == AccNormal, fct: fc.ct, usecss: isUseCss(2)});
 
 					default:
 						Context.error('[macro build]: Unsupported argument', fn.pos);
@@ -468,10 +465,8 @@ class Macros {
 		}
 	}
 
-	// Since HXX has been deprecated, this function becomes unimportant.
 	static function xmlParse(xml: Xml): Expr {
 		var attr = new haxe.DynamicAccess<String>();
-	#if (csss >= "0.3.2")
 		var a: Array<String> = @:privateAccess xml.attributeMap;
 		var i = 0;
 		while (i < a.length) {
@@ -479,12 +474,6 @@ class Macros {
 			i += 2;
 		}
 		attr.remove("id");
-	#else
-		for (aname in xml.attributes()) {
-			if (aname.charCodeAt(0) == ":".code || aname == "id") continue; // It's a posInfo or id
-			attr.set(aname, xml.get(aname));
-		}
-	#end
 		var children = @:privateAccess xml.children;
 		var len = children.length;
 		var exprs = [];

@@ -15,16 +15,16 @@
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
-    <class path="src" />
+    <class path="..\src" />
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="nodejs&#xA;analyzer-optimize&#xA;old-error-format" />
+    <option directives="analyzer-optimize&#xA;old-error-format" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
-    <option mainClass="test.NvdTest" />
+    <option mainClass="NvdTest" />
     <option enabledebug="False" />
-    <option additional="-dce full&#xA;-debug " />
+    <option additional="-dce full" />
   </build>
   <!-- haxelib libraries -->
   <haxelib>
