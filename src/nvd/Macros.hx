@@ -31,7 +31,7 @@ private typedef DOMAttr = {
 	css: String               // css selector which is used to finding it from root DOMElement.
 }
 
-private typedef FCType = {
+private typedef FAcc = {
 	ct: ComplexType,
 	ac: VarAccess
 }
@@ -100,24 +100,25 @@ class Macros {
 		return ret;
 	}
 
-	static var file_pos: XmlPos;
+	static var xpos: XmlPos;
 	// for detecting whether the field can be written.
-	static var fdom: Map<String, FCType> = null;                        // field_name => FCType
-	static var fdom_ex: Map<String, Map<String, FCType>> = new Map();   // tagName => [field_name => FCType]
-	static var fstyle: Map<String, FCType> = null;                      // css => FCType
-	static function initBase() {
-		if (fdom != null) return;
-		fdom = new Map();
-		fdom.set("text", { ct: ct_str, ac: AccNormal });                // custom property
-		fdom.set("html", { ct: ct_str, ac: AccNormal } );
-		extractFVar(fdom, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
+	static var facc: Map<String, FAcc> = null;              // field_name => FAcc
+	static var tacc: Map<String, Map<String, FAcc>> = null; // tagName => [faccs]
+	static var fstyle: Map<String, FAcc> = null;            // css => FAcc
+	static function init() {
+		if (facc != null) return;
+		facc = new Map();
+		tacc = new Map();
+		facc.set("text", { ct: ct_str, ac: AccNormal });    // custom property
+		facc.set("html", { ct: ct_str, ac: AccNormal });
+		extractFVar(facc, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 
 		fstyle = new Map();
 		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), "");
 	}
 
 	// only for js.html.*Element
-	static function extractFVar(out: Map<String, FCType>, type: Type, stop = "js.html.Element"): Void {
+	static function extractFVar(out: Map<String, FAcc>, type: Type, stop = "js.html.Element"): Void {
 		switch (type) {
 		case TInst(r, _):
 			var c: ClassType = r.get();
@@ -143,8 +144,8 @@ class Macros {
 	}
 
 	static function make(root: Xml, defs: Expr, fp: XmlPos, create: Bool): Array<Field> {
-		file_pos = fp;
-		initBase();
+		xpos = fp;
+		init();
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
 		var cls_path = switch (cls.kind) {
@@ -156,13 +157,13 @@ class Macros {
 			Context.error('[macro build]: Only for abstract type', pos);
 		}
 		var fields = Context.getBuildFields();
-		var all_fds = new Map<String, Bool>();
+		var allFields = new Map<String, Bool>();
 		for (f in fields) {
-			all_fds.set(f.name, true);
+			allFields.set(f.name, true);
 		}
 
 		var ct_tag = tag2ctype(root.nodeName, root.nodeName == "SVG", false);
-		if (!all_fds.exists("_new")) { // abstract class constructor
+		if (!allFields.exists("_new")) { // abstract class constructor
 			fields.push({
 				name: "new",
 				access: [APublic, AInline],
@@ -191,7 +192,7 @@ class Macros {
 				expr: macro return cast this
 			})
 		});
-		if (!all_fds.exists("ofSelector")) {
+		if (!allFields.exists("ofSelector")) {
 			var enew = {expr: ENew(cls_path, [macro js.Browser.document.querySelector(s)]), pos: pos};
 			fields.push({
 				name: "ofSelector",
@@ -204,7 +205,7 @@ class Macros {
 				})
 			});
 		}
-		if (create && !all_fds.exists("create")) {
+		if (create && !allFields.exists("create")) {
 			var ecreate = xmlParse(root);
 			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
 			fields.push({
@@ -287,8 +288,8 @@ class Macros {
 			}
 		}
 
-		if (file_pos.min == 0) { // from Nvd.build
-			Context.registerModuleDependency(cls.module, file_pos.file);
+		if (xpos.min == 0) { // from Nvd.build
+			Context.registerModuleDependency(cls.module, xpos.file);
 		}
 		return fields;
 	}
@@ -368,7 +369,7 @@ class Macros {
 					if (col[i] == xml) ret.push(ei);
 					++ ei;
 				} else if (col[i].nodeType != PCData) {
-					Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", file_pos.xml(col[i]));
+					Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", xpos.xml(col[i]));
 				}
 				++ i;
 			}
@@ -413,7 +414,7 @@ class Macros {
 		default:
 			Context.error("[macro build]: Unsupported type", pa0.pos);
 		}
-		var ct = tag2ctype(x.nodeName, root.nodeName == "SVG"); // Note: this method will be extract all ComplexType of the field to "fdom_ex"
+		var ct = tag2ctype(x.nodeName, root.nodeName == "SVG"); // Note: this method will be extract all ComplexType of the field to "tacc"
 		return {xml: x, ct: ct, path: path, pos: pa0.pos, css: css};
 	}
 
@@ -438,9 +439,9 @@ class Macros {
 
 					case EConst(CIdent("Prop")):
 						var aname = exprString(pa[1]);
-						var fc = fdom.get(aname);
+						var fc = facc.get(aname);
 						if (fc == null) {
-							var elem = fdom_ex.get(own.xml.nodeName);
+							var elem = tacc.get(own.xml.nodeName);
 							if (elem != null)
 								fc = elem.get(aname);
 						}
@@ -488,7 +489,7 @@ class Macros {
 				if (child.nodeValue != "")
 					exprs.push(macro $v{child.nodeValue});
 			} else {
-				Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", file_pos.xml(child));
+				Context.error("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", xpos.xml(child));
 			}
 			++i;
 		}
@@ -521,11 +522,11 @@ class Macros {
 			} else {
 				if (extract) {
 					if (!svg) {
-						var fc = fdom_ex.get(tagname);
+						var fc = tacc.get(tagname);
 						if (fc == null) {
 							fc = new Map();
 							extractFVar(fc, type);
-							fdom_ex.set(tagname, fc);
+							tacc.set(tagname, fc);
 						}
 					} else {
 						throw "TODO: do not support svg elements for now";
