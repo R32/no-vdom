@@ -73,12 +73,12 @@ class Macros {
 		}
 	}
 
-	static var files = new Map<String, csss.xml.Xml>();   // for Nvd.hx
+	@:persistent static var files = new Map<String, csss.xml.Xml>();   // for Nvd.hx
 	// complexType
 	static var ct_dom = macro :js.html.DOMElement;
 	static var ct_str = macro :String;
 	// collections of complexType by tagname
-	static var ct_maps = new Map<String, ComplexType>();  // full_name => ComplexType
+	@:persistent static var ct_maps = new Map<String, ComplexType>();  // full_name => ComplexType
 	static function cachedCType(t: Type): ComplexType {
 		var ret: ComplexType = null;
 		var name = switch (t) {
@@ -99,9 +99,9 @@ class Macros {
 
 	static var xmlPos: XmlPos;
 	// for detecting whether the field can be written.
-	static var facc: Map<String, FieldAccess> = null;              // field_name => FieldAccess
-	static var tacc: Map<String, Map<String, FieldAccess>> = null; // tagName => [faccs]
-	static var fstyle: Map<String, FieldAccess> = null;            // css => FieldAccess
+	@:persistent static var facc: Map<String, FieldAccess> = null;              // field_name => FieldAccess
+	@:persistent static var tacc: Map<String, Map<String, FieldAccess>> = null; // tagName => [faccs]
+	@:persistent static var fstyle: Map<String, FieldAccess> = null;            // css => FieldAccess
 	static function init() {
 		if (facc != null) return;
 		facc = new Map();
