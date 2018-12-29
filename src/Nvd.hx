@@ -44,6 +44,29 @@ class Nvd {
 		return macro nvd.Dt.make($a{ret});
 	}
 
+	@:persistent static var currentXML: csss.xml.Xml;
+
+	macro public static function SELECT(file: ExprOf<String>) {
+		var sfile = string(file);
+		var xml = files.get(sfile);
+		if (xml == null) {
+			xml = readFile(sfile, file.pos);
+			files.set(sfile, xml);
+		}
+		currentXML = xml;
+		return macro @:pos(file.pos){}
+	}
+	macro public static function Q(selector:ExprOf<String>):Expr {
+		var pos = Context.currentPos();
+		if (currentXML == null)
+			Context.fatalError( "No XML/HXML files currently selected", pos);
+		var node = csss.Query.one(currentXML, string(selector));
+		if (node == null)
+			Context.error('Invalid selector or Could not find: "${ string(selector )}"', selector.pos);
+		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
+		return macro @:pos(pos) (cast js.Browser.document.querySelector($selector): $ctype);
+	}
+
 #if macro
 	/*
 	example:
@@ -66,17 +89,7 @@ class Nvd {
 		var css = string(selector);
 		var xml = files.get(file);
 		if (xml == null) {
-			try {
-				xml = csss.xml.Xml.parse(sys.io.File.getContent(file));
-			} catch(err: csss.xml.Parser.XmlParserException) {
-				Context.fatalError(err.toString(), PositionTools.make({
-					file: file,
-					min: err.position,
-					max: err.position + 1
-				}));
-			} catch (err: Dynamic) {
-				Context.fatalError(Std.string(err), efile.pos);
-			}
+			xml = readFile(file, efile.pos);
 			files.set(file, xml);
 		}
 		var root = csss.Query.querySelector(xml, css);
@@ -96,6 +109,20 @@ class Nvd {
 			Context.fatalError(err.toString(), PositionTools.make(fp));
 		}
 		return nvd.Macros.make(root, defs, fp, create);
+	}
+
+	static function readFile(file, pos): csss.xml.Xml {
+		return try {
+			 csss.xml.Xml.parse( sys.io.File.getContent(file) );
+		} catch(err: csss.xml.Parser.XmlParserException) {
+			Context.fatalError(err.toString(), PositionTools.make({
+				file: file,
+				min: err.position,
+				max: err.position + 1
+			}));
+		} catch (err: Dynamic) {
+			Context.fatalError(Std.string(err), pos);
+		}
 	}
 #end
 }
