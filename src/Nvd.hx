@@ -38,7 +38,7 @@ class Nvd {
 			case ExprDef.EArrayDecl(_), ExprDef.EConst(_):
 				ret.push(exprs[1]); // text, or subs
 			default:
-				Context.error("Unsupported type", exprs[1].pos);
+				Context.fatalError("Unsupported type", exprs[1].pos);
 			}
 		}
 		return macro nvd.Dt.make($a{ret});
@@ -69,18 +69,18 @@ class Nvd {
 			try {
 				xml = csss.xml.Xml.parse(sys.io.File.getContent(file));
 			} catch(err: csss.xml.Parser.XmlParserException) {
-				Context.error(err.toString(), PositionTools.make({
+				Context.fatalError(err.toString(), PositionTools.make({
 					file: file,
 					min: err.position,
 					max: err.position + 1
 				}));
 			} catch (err: Dynamic) {
-				Context.error(Std.string(err), efile.pos);
+				Context.fatalError(Std.string(err), efile.pos);
 			}
 			files.set(file, xml);
 		}
 		var root = csss.Query.querySelector(xml, css);
-		if (root == null) Context.error('Invalid selector or Could not find: "$css"', selector.pos);
+		if (root == null) Context.fatalError('Invalid selector or Could not find: "$css"', selector.pos);
 		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
 
@@ -93,7 +93,7 @@ class Nvd {
 		} catch (err: csss.xml.Parser.XmlParserException) {
 			fp.min += err.position;
 			fp.max = fp.min + 1;
-			Context.error(err.toString(), PositionTools.make(fp));
+			Context.fatalError(err.toString(), PositionTools.make(fp));
 		}
 		return nvd.Macros.make(root, defs, fp, create);
 	}
