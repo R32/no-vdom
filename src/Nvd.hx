@@ -4,7 +4,7 @@ package;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.PositionTools;
-import nvd.Macros.exprString as string;
+import nvd.Macros.exprString;
 import nvd.Macros.files;
 #end
 
@@ -43,31 +43,32 @@ class Nvd {
 		}
 		return macro nvd.Dt.make($a{ret});
 	}
-
-	@:persistent static var currentXML: csss.xml.Xml;
-
-	macro public static function SELECT(file: ExprOf<String>) {
-		var sfile = string(file);
-		var xml = files.get(sfile);
-		if (xml == null) {
-			xml = readFile(sfile, file.pos);
-			files.set(sfile, xml);
-		}
-		currentXML = xml;
-		return macro @:pos(file.pos){}
-	}
-	macro public static function Q(selector:ExprOf<String>):Expr {
-		var pos = Context.currentPos();
-		if (currentXML == null)
-			Context.fatalError( "No XML/HXML files currently selected", pos);
-		var node = csss.Query.one(currentXML, string(selector));
-		if (node == null)
-			Context.error('Invalid selector or Could not find: "${ string(selector )}"', selector.pos);
-		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
-		return macro @:pos(pos) (cast js.Browser.document.querySelector($selector): $ctype);
-	}
-
 #if macro
+	/**
+	since you can't build "macro function" from macro, So you need to write it manually:
+
+	```hx
+	// Note: This method should be placed in "non-js" class
+	macro public static function one(selector) {
+		return Nvd.querySelectorCType("bin/index.html", selector, macro js.Browser.document.querySelector($selector) );
+	}
+	```
+	*/
+	public static function querySelectorCType(path: String, exprSelector: ExprOf<String>, exprReturn: Expr): Expr {
+		var pos = Context.currentPos();
+		var xml = files.get(path);
+		if (xml == null) {
+			xml = readFile(path, pos);
+			files.set(path, xml);
+		}
+		var selector = exprString(exprSelector);
+		var node = csss.Query.one(xml, selector);
+		if (node == null)
+			Context.fatalError('Invalid selector or Could not find: "$selector"', exprSelector.pos);
+		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
+		return macro @:pos(pos) (cast $exprReturn: $ctype);
+	}
+
 	/*
 	example:
 	```hx
@@ -85,8 +86,8 @@ class Nvd {
 	```
 	*/
 	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, create = true) {
-		var file = string(efile);
-		var css = string(selector);
+		var file = exprString(efile);
+		var css = exprString(selector);
 		var xml = files.get(file);
 		if (xml == null) {
 			xml = readFile(file, efile.pos);
@@ -98,7 +99,7 @@ class Nvd {
 	}
 
 	public static function buildString(es: ExprOf<String>, ?defs, create = true) {
-		var txt = string(es);
+		var txt = exprString(es);
 		var fp = PositionTools.getInfos(es.pos);
 		fp.min += 1; // the 1 width of the quotes
 		var root = try {
