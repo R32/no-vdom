@@ -50,11 +50,11 @@ class Nvd {
 	```hx
 	// Note: This method should be placed in "non-js" class
 	macro public static function one(selector) {
-		return Nvd.querySelectorCType("bin/index.html", selector, macro js.Browser.document.querySelector($selector) );
+		return Nvd.buildQuerySelector("bin/index.html", selector);
 	}
 	```
 	*/
-	public static function querySelectorCType(path: String, exprSelector: ExprOf<String>, exprReturn: Expr): Expr {
+	public static function buildQuerySelector(path: String, exprSelector: ExprOf<String>): Expr {
 		var pos = Context.currentPos();
 		var xml = files.get(path);
 		if (xml == null) {
@@ -64,9 +64,9 @@ class Nvd {
 		var selector = exprString(exprSelector);
 		var node = csss.Query.one(xml, selector);
 		if (node == null)
-			Context.fatalError('Invalid selector or Could not find: "$selector"', exprSelector.pos);
+			Context.fatalError('Invalid selector or Could not find: "$selector" in $path', exprSelector.pos);
 		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
-		return macro @:pos(pos) (cast $exprReturn: $ctype);
+		return macro @:pos(pos) (cast js.Browser.document.querySelector($exprSelector): $ctype);
 	}
 
 	/*
