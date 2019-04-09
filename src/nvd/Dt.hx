@@ -93,10 +93,9 @@ DOM Tools
 		}
 	}
 
-	public static function setStyle(dom: DOMElement, style: haxe.DynamicAccess<Any>): Void {
-		if (style == null) return;
-		for (k in style.keys())
-			Reflect.setField(dom.style, k, style.get(k));
+	public static function setStyle(dom: DOMElement, styles: haxe.DynamicAccess<Any>): Void {
+		//for (k in style.keys()) Reflect.setField(dom.style, k, style.get(k));
+		js.Syntax.code("for(var k in {0}) {1}[k] = {0}[k]", styles, dom.style);
 	}
 
 	public static function lookup(dom: DOMElement, path: Array<Int>): DOMElement {
