@@ -4,7 +4,6 @@ import js.Browser.document;
 import js.Browser.console;
 import Nvd.h;
 import nvd.p.HXX;
-import NvdQuery.one;
 
 class NvdTest {
 	static function test_hxx() {
@@ -35,7 +34,6 @@ class NvdTest {
 	}
 	static function main() {
 		test_hxx();
-		one("div");
 		var d1 = h("div.red.some", [
 
 			h("label", [
@@ -95,7 +93,7 @@ class NvdTest {
 	display: $(null).style.display,
 	input:   $(".input-block"),
 	value:   $(".input-block", true).value,
-	title:   $([1, 0]).attr.title,       // or .attr["title"]
+	title:   $([1, 0]).attr.title,  // the "[1, 0]" is rootElement.children[1].children[0]
 })) abstract Foo(nvd.Comp) {
 }
 
