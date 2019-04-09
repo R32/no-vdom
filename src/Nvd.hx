@@ -38,7 +38,7 @@ class Nvd {
 			case ExprDef.EArrayDecl(_), ExprDef.EConst(_):
 				ret.push(exprs[1]); // text, or subs
 			default:
-				Context.fatalError("Unsupported type", exprs[1].pos);
+				nvd.Macros.fatalError("Unsupported type", exprs[1].pos);
 			}
 		}
 		return macro nvd.Dt.make($a{ret});
@@ -64,7 +64,7 @@ class Nvd {
 		var selector = exprString(exprSelector);
 		var node = csss.Query.one(xml, selector);
 		if (node == null)
-			Context.fatalError('Invalid selector or Could not find: "$selector" in $path', exprSelector.pos);
+			nvd.Macros.fatalError('Invalid selector or Could not find: "$selector" in $path', exprSelector.pos);
 		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
 		return macro @:pos(pos) (cast js.Browser.document.querySelector($exprSelector): $ctype);
 	}
@@ -94,7 +94,7 @@ class Nvd {
 			files.set(file, xml);
 		}
 		var root = csss.Query.querySelector(xml, css);
-		if (root == null) Context.fatalError('Invalid selector or Could not find: "$css"', selector.pos);
+		if (root == null) nvd.Macros.fatalError('Invalid selector or Could not find: "$css"', selector.pos);
 		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
 
@@ -107,7 +107,7 @@ class Nvd {
 		} catch (err: csss.xml.Parser.XmlParserException) {
 			fp.min += err.position;
 			fp.max = fp.min + 1;
-			Context.fatalError(err.toString(), PositionTools.make(fp));
+			nvd.Macros.fatalError(err.toString(), PositionTools.make(fp));
 		}
 		return nvd.Macros.make(root, defs, fp, create);
 	}
@@ -116,13 +116,13 @@ class Nvd {
 		return try {
 			 csss.xml.Xml.parse( sys.io.File.getContent(file) );
 		} catch(err: csss.xml.Parser.XmlParserException) {
-			Context.fatalError(err.toString(), PositionTools.make({
+			nvd.Macros.fatalError(err.toString(), PositionTools.make({
 				file: file,
 				min: err.position,
 				max: err.position + 1
 			}));
 		} catch (err: Dynamic) {
-			Context.fatalError(Std.string(err), pos);
+			nvd.Macros.fatalError(Std.string(err), pos);
 		}
 	}
 #end

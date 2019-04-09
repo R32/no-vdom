@@ -1,9 +1,9 @@
 no-vdom
 --------
 
-A haxelib for building HTML `macro components`:
+A haxelib for HTML data building in macro
 
-* Easy: If you know css selector and haxe, you will understand all the syntax in just 1 minutes.
+* Easy
 
 * Intelligent:
 
@@ -19,8 +19,24 @@ A haxelib for building HTML `macro components`:
 
 * issues:
   - can not recognize SVG Element which will be treated as a DOMElement.
-  - Comment, CDATA and ProcessingInstruction cannot be included in HTML fragment. (will throw an error.)
-  - when you use `MyComponent.create()`, All returned Elements will not contain the **`id`** attribute.
+  - Comment, CDATA and ProcessingInstruction are not allowed to be placed in HTML fragment. (an error will be thrown)
+
+* utils:
+
+  Verify css query:
+
+  ```haxe
+  // 1. define a "macro function" and put it in "non-js" module/class file
+  macro static function one(selector) {
+    return Nvd.buildQuerySelector("bin/index.html", selector);
+  }
+
+  static function main() {
+    var node = one(".hello"); // Can be automatically recognized as DivElement
+    var typo = one(".typo");  // If ".typo" is not found then you'll get an error in compile time
+  }
+  ```
+  ![screen shot](demo/vali_css.jpg)
 
 ## Demo
 
@@ -39,7 +55,7 @@ all the code below is in [demo](demo/Demo.hx?ts=4)
 
 ```haxe
 @:build(Nvd.build("index.html", ".hello-world", {
-  text: Prop("h4", "textContent"),
+  text: $("h4").textContent,
 })) abstract HelloWorld(nvd.Comp) {
 }
 
@@ -68,36 +84,35 @@ Demo.main();
 
 #### Syntax
 
-Note that the following is pseudo code
-
 ```haxe
 /**
 @file: Specify an HTML file, Relative to current project.
-@root: a css selector will specify a **root DOMElement** of the Component.
-@defs: Optional. See **DefType** for details.
-  example:
+@root: a css selector which will be queried as **root DOMElement** for the Component.
+@defs: Specify property binding, for example:
   {
-    text: Prop("label", "textContext"),
-    btn : Elem("button"),
-    value: Attr("input[type=button]", "value")
-    x: Style(null, "left"),
-    y: Style(null, "top")
+    btn :   $("button"),
+    text:   $("label").textContext,
+    value:  $("input[type=button]").attr.value,
+    x:      $(null).style.left,  // if selector is null/"" then self(root DOMElement).
+    y:      $(null).style.top,
   }
 */
 Nvd.build(file: String, root: String, ?defs: Dynamic<Defines>);
 
 /**
-@child: a css selector that used to specify a child DOMElement , if null it's represented as root DOMElement.
-    (In fact, this parameter can also be an array that describes the location relative to the root DOMElement).
-@name:
-@keep: Optional, if true that will keep the "css-selector"(first parameter) in output.
+@selector: a css selector that used to specify a child DOMElement , if null it's represented as root DOMElement.
+@keep: Optional, if true that will keep the "css-selector" in output.
 */
-enum DefType {
-  Elem(?child: String, ?keep: Bool)
-  Prop(?child: String, prop_name: String, ?keep: Bool)
-  Attr(?child: String, attr_name: String, ?keep: Bool)
-  Style(?child:String, style_name:String, ?keep: Bool)
-}
+function $(selector:String, ?keep: Bool);
+
+/**
+There are 4 types available: DOMElement/Property/Attribute/Style-Property
+  $(...)              => DOMElement
+  $(...).XXX          => Property
+  $(...).attr.XXX     => Attribute,
+  $(...).attr["XXX"]  => Attribute,
+  $(...).style.XXX    => Style-Property
+*/
 ```
 
 ### form data
@@ -125,12 +140,11 @@ Component:
 
 ```hx
 @:build(Nvd.build("index.html", "#login", {
-  btn: Elem("button[type=submit]"),
-  name: Prop("input[name=name]", "value"),
-  email: Prop("input[name=email]", "value"),
-  remember: Prop("input[type=checkbox]", "checked"),
-  // the last argument "true" is used to keep css-selector in output
-  herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
+  btn:      $("button[type=submit]"),
+  name:     $("input[name=name]").value,
+  email:    $("input[name=email]").value,
+  remember: $("input[type=checkbox]").checked,  // Note: IE8 does not support the pseudo-selector ":checked"
+  herpderp: $("input[type=radio][name=herpderp]:checked", true).value,
 })) abstract LoginForm(nvd.Comp) {
   public inline function getData() {
     return {

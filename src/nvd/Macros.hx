@@ -12,7 +12,7 @@ using csss.Query;
 using haxe.macro.Tools;
 
 @:forward
-private abstract XmlPos({file: String, min: Int}) from {file: String, min: Int} {
+private abstract XmlPosition({file: String, min: Int}) from {file: String, min: Int} {
 	inline function new(o: {file: String, min: Int}) this = o;
 
 	public inline function pos(p, w) return PositionTools.make({
@@ -25,10 +25,10 @@ private abstract XmlPos({file: String, min: Int}) from {file: String, min: Int} 
 
 private typedef DOMAttr = {
 	xml: Xml,                 // the DOMElement
-	ct: ComplexType,          // parsed ComplexType by xml.tagName. If unrecognized, default is `:js.html.DOMElement`
+	ct: ComplexType,          // parsed ComplexType by xml.tagName. If unrecognized then default is `:js.html.DOMElement`
 	path: Array<Int>,         // relative to root
 	pos: haxe.macro.Position, // the first parameter of DefType
-	css: String               // css selector which is used to finding it from root DOMElement.
+	css: Null<String>         // css selector which will be used to query from root DOMElement, if use PATH then the value is null
 }
 
 private typedef FieldAccess = {
@@ -38,9 +38,9 @@ private typedef FieldAccess = {
 
 private typedef DefInfo = {
 	assoc: DOMAttr,           // Associated DOMElement
-	name: String,             // the attribute/property name
-	fct: ComplexType,         // the ctype of the attribute/property.
-	argt: DefType,            // see below.
+	name: String,             // the attribute/property/style property name
+	fct: ComplexType,         // the ctype of the attribute/property/style property name
+	type: DefType,            // see below.
 	w: Bool,                  // if AccNormal(can be written) then true.
 	usecss: Bool,             // keep the css in output/runtime
 }
@@ -54,13 +54,13 @@ private typedef DefInfo = {
 
 @:allow(Nvd)
 class Macros {
-	// for Nvd.h()
+	// only for Nvd.h()
 	static function attrParse(e: Expr, attr): Expr {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			var name: String;
 			var p = CValid.ident(s, 0, s.length, CValid.is_alpha_u, CValid.is_anum); // no longer allow "." for tagname
-			if (p == 0) Context.fatalError('Invalid TagName: "$s"', e.pos);
+			if (p == 0) fatalError('Invalid TagName: "$s"', e.pos);
 			if (p == s.length) {
 				name = s.toUpperCase();
 			} else {
@@ -69,14 +69,25 @@ class Macros {
 			}
 			macro $v{name};
 		default:
-			Context.fatalError("Unsupported type", e.pos);
+			fatalError("Unsupported type", e.pos);
 		}
 	}
 
-	@:persistent static var files = new Map<String, csss.xml.Xml>();   // for Nvd.hx
+
+	/////////////////////////////////////////////////////////////////////
+
+
+	static inline var ERR_PREFIX = "[no-vdom]: ";
+
+	static inline function fatalError(msg, pos):Dynamic return Context.fatalError(ERR_PREFIX + msg, pos);
+
 	// complexType
 	static var ct_dom = macro :js.html.DOMElement;
 	static var ct_str = macro :String;
+
+	// cache xml file
+	@:persistent static var files = new Map<String, csss.xml.Xml>();
+
 	// collections of complexType by tagname
 	@:persistent static var ct_maps = new Map<String, ComplexType>();  // full_name => ComplexType
 	static function cachedCType(t: Type): ComplexType {
@@ -97,21 +108,22 @@ class Macros {
 		return ret;
 	}
 
-	static var xmlPos: XmlPos;
+	static var xml_position: XmlPosition;
 	// for detecting whether the field can be written.
-	@:persistent static var facc: Map<String, FieldAccess> = null;              // field_name => FieldAccess
-	@:persistent static var tacc: Map<String, Map<String, FieldAccess>> = null; // tagName => [faccs]
-	@:persistent static var fstyle: Map<String, FieldAccess> = null;            // css => FieldAccess
-	static function init() {
-		if (facc != null) return;
-		facc = new Map();
-		tacc = new Map();
-		facc.set("text", { ct: ct_str, ac: AccNormal });    // custom property
-		facc.set("html", { ct: ct_str, ac: AccNormal });
-		extractFVar(facc, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
+	@:persistent static var dom_property_access: Map<String, FieldAccess> = null;          // property_name => FieldAccess
+	@:persistent static var tag_dom_access: Map<String, Map<String, FieldAccess>> = null;  // tagName => [dom_property_access]
+	@:persistent static var style_access: Map<String, FieldAccess> = null;                 // css => FieldAccess
+	static function init(xmlpos: XmlPosition) {
+		xml_position = xmlpos;
+		if (dom_property_access != null) return;
+		dom_property_access = new Map();
+		tag_dom_access = new Map();
+		dom_property_access.set("text", { ct: ct_str, ac: AccNormal });    // custom property
+		dom_property_access.set("html", { ct: ct_str, ac: AccNormal });
+		extractFVar(dom_property_access, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 
-		fstyle = new Map();
-		extractFVar(fstyle, Context.getType("js.html.CSSStyleDeclaration"), "");
+		style_access = new Map();
+		extractFVar(style_access, Context.getType("js.html.CSSStyleDeclaration"), "");
 	}
 
 	// only for js.html.*Element
@@ -136,22 +148,21 @@ class Macros {
 				}
 			}
 		default:
-			Context.fatalError("Unsupported type", PositionTools.here());
+			fatalError("Unsupported type", PositionTools.here());
 		}
 	}
 
-	static function make(root: Xml, defs: Expr, xp: XmlPos, create: Bool): Array<Field> {
-		xmlPos = xp;
-		init();
+	static function make(root: Xml, defs: Expr, xmlpos: XmlPosition, create: Bool): Array<Field> {
+		init(xmlpos);
 		var pos = Context.currentPos();
 		var cls: ClassType = Context.getLocalClass().get();
 		var cls_path = switch (cls.kind) {
 		case KAbstractImpl(_.get() => c):
 			if (c.type.toString() != "nvd.Comp")
-				Context.fatalError('[macro build]: Only for abstract ${c.name}(nvd.Comp) ...', pos);
+				fatalError('Only for abstract ${c.name}(nvd.Comp) ...', pos);
 			{pack: c.pack, name: c.name};
 		default:
-			Context.fatalError('[macro build]: Only for abstract type', pos);
+			fatalError('Only for abstract type', pos);
 		}
 		var fields = Context.getBuildFields();
 		var allFields = new Map<String, Bool>();
@@ -246,7 +257,7 @@ class Macros {
 				kind: FFun( {
 					args: [],
 					ret: info.fct,
-					expr: switch (info.argt) {
+					expr: switch (info.type) {
 					case Elem: macro return $edom;
 					case Attr: macro return $edom.getAttribute($v{ aname });
 					case Prop:
@@ -268,7 +279,7 @@ class Macros {
 					kind: FFun({
 						args: [{name: "v", type: info.fct}],
 						ret: info.fct,
-						expr: switch (info.argt) {
+						expr: switch (info.type) {
 						case Attr: macro return nvd.Dt.setAttr($edom, $v{ aname }, v);
 						case Prop:
 							switch (aname) {
@@ -285,8 +296,8 @@ class Macros {
 			}
 		}
 
-		if (xmlPos.min == 0) { // from Nvd.build
-			Context.registerModuleDependency(cls.module, xmlPos.file);
+		if (xml_position.min == 0) { // from Nvd.build
+			Context.registerModuleDependency(cls.module, xml_position.file);
 		}
 		return fields;
 	}
@@ -319,7 +330,7 @@ class Macros {
 		case EConst(CString(s)):
 			s;
 		default:
-			Context.fatalError("[macro build]: Expected String", e.pos);
+			fatalError("Expected String", e.pos);
 		}
 	}
 
@@ -366,7 +377,7 @@ class Macros {
 					if (col[i] == xml) ret.push(ei);
 					++ ei;
 				} else if (col[i].nodeType != PCData) {
-					Context.fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Query Path.", xmlPos.xml(col[i]));
+					fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Query Path.", xml_position.xml(col[i]));
 				}
 				++ i;
 			}
@@ -390,7 +401,7 @@ class Macros {
 			} else {
 				xml = root.querySelector(s);
 				if (xml == null)
-					Context.fatalError('Could not find "$s" in ${root.toSimpleString()}', selector.pos);
+					fatalError('Could not find "$s" in ${root.toSimpleString()}', selector.pos);
 				css = s;
 				path = getPath(xml, root);
 			}
@@ -402,17 +413,24 @@ class Macros {
 				switch (n.expr) {
 				case EConst(CInt(i)): path.push(Std.parseInt(i));
 				default:
-					Context.fatalError("[macro build]: Expected Int", n.pos);
+					fatalError("Expected Int", n.pos);
 				}
 			}
 			xml = pathLookup(root, path, 0);
 			if (xml == null)
-				Context.fatalError('Could not find "${"[" + path.join(",") + "]"}" in ${root.toSimpleString()}', selector.pos);
+				fatalError('Could not find "${"[" + path.join(",") + "]"}" in ${root.toSimpleString()}', selector.pos);
 		default:
-			Context.fatalError("[macro build]: Unsupported type", selector.pos);
+			fatalError("Unsupported type", selector.pos);
 		}
-		var ct = tagToCtype(xml.nodeName, root.nodeName == "SVG"); // Note: this method will be extract all ComplexType of the field to "tacc"
+		var ct = tagToCtype(xml.nodeName, root.nodeName == "SVG"); // Note: this method will be extract all ComplexType of the field to "tag_dom_access"
 		return {xml: xml, ct: ct, path: path, pos: selector.pos, css: css};
+	}
+
+	static function calcEFieldPosition(full, left) {
+		var p1 = PositionTools.getInfos(full);
+		var min = PositionTools.getInfos(left).max + 1; // ".".length == 1
+		p1.min = min;
+		return PositionTools.make(p1);
 	}
 
 	static function argParse(top: Xml, defs: Expr, out:Map<String, DefInfo>) {
@@ -420,45 +438,103 @@ class Macros {
 		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
 		case EObjectDecl(a):
 			for (f in a) {
-				if (out.get(f.field) != null)
-					Context.fatalError("Duplicate definition", f.expr.pos);
+				if (out.get(f.field) != null) fatalError("Duplicate definition", f.expr.pos);
+
 				switch (f.expr.expr) {
-				case ECall(func, params):
-					var assoc = getDOMAttr(top, params[0]);
-					inline function isUseCss(n) return assoc.css != null && params.length > n && exprBool(params[n]);
-					switch (func.expr) {
-					case EConst(CIdent("Elem")):
-						out.set(f.field, {argt: Elem, assoc: assoc, name: null, w: false, fct: assoc.ct, usecss: isUseCss(1)});
-
-					case EConst(CIdent("Attr")):
-						out.set(f.field, {argt: Attr, assoc: assoc, name: exprString(params[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
-
-					case EConst(CIdent("Prop")):
-						var aname = exprString(params[1]);
-						var fc = facc.get(aname);
-						if (fc == null) {
-							var elem = tacc.get(assoc.xml.nodeName);
-							if (elem != null)
-								fc = elem.get(aname);
+				case EField(e, property):        //  $("sel").PROPERTY, $("sel").style.PROPERTY, $("sel").attr.ATTRIBUTE
+					var type:DefType = Prop;
+					var params = switch(e.expr) {
+					case ECall(macro $i{"$"}, params):
+						params;
+					case EField({expr: ECall(macro $i{"$"}, params), pos: _}, t):
+						if (t == "style") {
+							type = Style;
+						} else if (t == "attr") {
+							type = Attr;
+						} else {
+							fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
 						}
-						if (fc == null) Context.fatalError('${assoc.xml.nodeName} has no field "$aname"', params[1].pos);
-						out.set(f.field, {argt: Prop, assoc: assoc, name: aname, w: fc.ac == AccNormal && simpleValid(assoc.xml, aname), fct: fc.ct, usecss: isUseCss(2)});
-
-					case EConst(CIdent("Style")):
-						var cname = exprString(params[1]);
-						var fc = fstyle.get(cname);
-						if (fc == null) Context.fatalError('js.html.CSSStyleDeclaration has no field "$cname"', params[1].pos);
-						out.set(f.field, {argt: Style, assoc: assoc, name: cname, w: fc.ac == AccNormal, fct: fc.ct, usecss: isUseCss(2)});
-
-					default:
-						Context.fatalError('[macro build]: Unsupported argument', func.pos);
+						params;
+					case _:
+						fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
 					}
+					var assoc = getDOMAttr(top, params[0]);
+					var usecss = assoc.css != null && params.length == 2 && exprBool(params[1]);
+					var access: FieldAccess;
+					var write = false;
+					if (type == Prop) {
+						access = dom_property_access.get(property);
+						if (access == null) {
+							var elem = tag_dom_access.get(assoc.xml.nodeName);
+							if (elem != null) {
+								access = elem.get(property);
+							}
+						}
+						if (access == null)
+							fatalError('${assoc.xml.nodeName} has no field "$property"', calcEFieldPosition(f.expr.pos, e.pos));
+						write = access.ac == AccNormal && simpleValid(assoc.xml, property);
+					} else if (type == Style) {
+						access = style_access.get(property);
+						if (access == null)
+							fatalError('js.html.CSSStyleDeclaration has no field "$property"', calcEFieldPosition(f.expr.pos, e.pos));
+						write = access.ac == AccNormal;
+					} else { // Attr
+						access = {
+							ct: ct_str,
+							ac: AccNormal,
+						}
+						write = true;
+					}
+					out.set(f.field, {type: type, assoc: assoc, name: property, w: write, fct: access.ct, usecss: usecss});
+
+				case ECall(e, params):
+					switch(e.expr) {
+					case EConst(CIdent(s)): // For compatibility with old
+						var assoc = getDOMAttr(top, params[0]);
+						inline function isUseCss(n) return assoc.css != null && params.length > n && exprBool(params[n]);
+						switch(s) {
+						case "$" | "Elem":
+							out.set(f.field, {type: Elem, assoc: assoc, name: null, w: false, fct: assoc.ct, usecss: isUseCss(1)});
+						case "Attr":
+							out.set(f.field, {type: Attr, assoc: assoc, name: exprString(params[1]), w: true, fct: ct_str, usecss: isUseCss(2)});
+						case "Prop":
+							var property = exprString(params[1]);
+							var access = dom_property_access.get(property);
+							if (access == null) {
+								var elem = tag_dom_access.get(assoc.xml.nodeName);
+								if (elem != null) {
+									access = elem.get(property);
+								}
+							}
+							if (access == null)
+								fatalError('${assoc.xml.nodeName} has no field "$property"', params[1].pos);
+							var write = access.ac == AccNormal && simpleValid(assoc.xml, property);
+							out.set(f.field, {type: Prop, assoc: assoc, name: property, w: write, fct: access.ct, usecss: isUseCss(2)});
+						case "Style":
+							var property = exprString(params[1]);
+							var access = style_access.get(property);
+							if (access == null)
+								fatalError('js.html.CSSStyleDeclaration has no field "$property"', params[1].pos);
+							out.set(f.field, {type: Style, assoc: assoc, name: property, w: access.ac == AccNormal, fct: access.ct, usecss: isUseCss(2)});
+						case _:
+							fatalError('Unsupported : ' + s, e.pos);
+						}
+					case _:
+						fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
+					}
+
+				case EArray({expr: EField({expr: ECall(macro $i{"$"}, query), pos: _}, "attr"), pos: _}, macro $v{(attribute:String)}):
+					// $(selector).attr["ATTRIBUTE"]
+					var assoc = getDOMAttr(top, query[0]);
+					var usecss = assoc.css != null && query.length == 2 && exprBool(query[1]);
+					out.set(f.field, {type: Attr, assoc: assoc, name: attribute, w: true, fct: ct_str, usecss: usecss});
+
 				default:
-					Context.fatalError('[macro build]: Unsupported argument', f.expr.pos);
+					fatalError('Unsupported argument', f.expr.pos);
 				}
 			}
 		default:
-			Context.fatalError('[macro build]: Unsupported type for "defs"', defs.pos);
+			fatalError('Unsupported type for "defs"', defs.pos);
 		}
 	}
 
@@ -485,7 +561,7 @@ class Macros {
 				if (child.nodeValue != "")
 					exprs.push(macro $v{child.nodeValue});
 			} else {
-				Context.fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", xmlPos.xml(child));
+				fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", xml_position.xml(child));
 			}
 			++i;
 		}
@@ -518,11 +594,11 @@ class Macros {
 			} else {
 				if (extract) {
 					if (!svg) {
-						var fc = tacc.get(tagname);
+						var fc = tag_dom_access.get(tagname);
 						if (fc == null) {
 							fc = new Map();
 							extractFVar(fc, type);
-							tacc.set(tagname, fc);
+							tag_dom_access.set(tagname, fc);
 						}
 					} else {
 						throw "TODO: do not support svg elements for now";

@@ -19,13 +19,13 @@ class Demo {
 
 // tutorial hello world
 @:build(Nvd.build("index.html", ".hello-world", {
-	text: Prop("h4", "textContent"),
+	text: $("h4").textContent,
 })) abstract HelloWorld(nvd.Comp) {
 }
 
 // tutorial tick
 @:build(Nvd.build("index.html", ".tick", {
-	ts: Prop("span", "text")
+	ts: $("span").text
 })) abstract Tick(nvd.Comp) {
 	public inline function run(timer) {
 		timer.run = function() {
@@ -36,13 +36,11 @@ class Demo {
 
 // form
 @:build(Nvd.build("index.html", "#login", {
-	btn: Elem("button[type=submit]"),
-	name: Prop("input[name=name]", "value"),
-	email: Prop("input[name=email]", "value"),
-	remember: Prop("input[type=checkbox]", "checked"),
-	// Note: IE8 does not support the pseudo-selector ":checked"
-	// the last argument "true" is used to keep the css-selector in output
-	herpderp: Prop("input[type=radio][name=herpderp]:checked", "value", true),
+	btn:      $("button[type=submit]"),
+	name:     $("input[name=name]").value,
+	email:    $("input[name=email]").value,
+	remember: $("input[type=checkbox]").checked, // Note: IE8 does not support the pseudo-selector ":checked"
+	herpderp: $("input[type=radio][name=herpderp]:checked", true).value,
 })) abstract LoginForm(nvd.Comp) {
 	public inline function getData() {
 		return {
