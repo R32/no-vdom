@@ -32,7 +32,7 @@ A haxelib for HTML data building in macro
   }
 
   static function main() {
-    var node = one(".hello"); // Can be automatically recognized as DivElement
+    var node = one(".hello"); // Can be automatically recognized as XXXElement
     var typo = one(".typo");  // If ".typo" is not found then you'll get an error in compile time
   }
   ```
@@ -190,8 +190,5 @@ Demo.main();
 
 ## CHANGES
 
-* 0.3.3 discard HXX.parse
-* 0.3.2 simplify
-* 0.3.1 minor
-* 0.3.0 Added `Style(sel, cssname)`
-* 0.2.0 Allow keep css-selector in output.
+* `0.4.0`: added new data binding syntax
+* `0.3.3`: discard HXX.parse

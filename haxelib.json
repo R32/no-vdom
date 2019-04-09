@@ -1,12 +1,12 @@
 {
   "name": "no-vdom",
   "classPath": "src",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "url": "https://github.com/R32/no-vdom/",
   "license": "MIT",
   "tags": ["html"],
-  "description": "for building HTML component...",
-  "releasenote": "See https://github.com/R32/no-vdom/",
+  "description": "used for HTML data building",
+  "releasenote": "Added new data binding Syntax",
   "dependencies": {
     "csss": ""
   },
