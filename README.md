@@ -3,15 +3,9 @@ no-vdom
 
 A haxelib for HTML data building in macro
 
-* Easy
-
 * Intelligent:
 
   ![screen shot](demo/demo-3.gif)
-
-* Strictly type: *As shown in the bottom GIF*
-
-  > for example the `<button>` will be recognized as `js.html.ButtonElement`
 
 * **Zero Performance Loss**.
 
@@ -23,7 +17,7 @@ A haxelib for HTML data building in macro
 
 * utils:
 
-  Verify css query:
+  Verify css query: *(See the GIF above)*
 
   ```haxe
   // 1. define a "macro function" and put it in "non-js" module/class file
@@ -33,10 +27,9 @@ A haxelib for HTML data building in macro
 
   static function main() {
     var node = one(".hello"); // Can be automatically recognized as XXXElement
-    var typo = one(".typo");  // If ".typo" is not found then you'll get an error in compile time
+    var typo = one(".typo");  // If ".typo" is not found then you'll get an error
   }
   ```
-  ![screen shot](demo/vali_css.jpg)
 
 ## Demo
 
@@ -103,7 +96,7 @@ Nvd.build(file: String, root: String, ?defs: Dynamic<Defines>);
 @selector: a css selector that used to specify a child DOMElement , if null it's represented as root DOMElement.
 @keep: Optional, if true that will keep the "css-selector" in output.
 */
-function $(selector:String, ?keep: Bool);
+function $(selector:String, ?keep: Bool):AUTO;
 
 /**
 There are 4 types available: DOMElement/Property/Attribute/Style-Property
@@ -143,7 +136,8 @@ Component:
   btn:      $("button[type=submit]"),
   name:     $("input[name=name]").value,
   email:    $("input[name=email]").value,
-  remember: $("input[type=checkbox]").checked,  // Note: IE8 does not support the pseudo-selector ":checked"
+  remember: $("input[type=checkbox]").checked,
+  // Note: IE8 does not support the pseudo-selector ":checked"
   herpderp: $("input[type=radio][name=herpderp]:checked", true).value,
 })) abstract LoginForm(nvd.Comp) {
   public inline function getData() {
