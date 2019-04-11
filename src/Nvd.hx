@@ -5,7 +5,7 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.PositionTools;
 import nvd.Macros.exprString;
-import nvd.Macros.files;
+import nvd.Macros.CachedXMLFile;
 #end
 
 class Nvd {
@@ -56,13 +56,9 @@ class Nvd {
 	*/
 	public static function buildQuerySelector(path: String, exprSelector: ExprOf<String>): Expr {
 		var pos = Context.currentPos();
-		var xml = files.get(path);
-		if (xml == null) {
-			xml = readFile(path, pos);
-			files.set(path, xml);
-		}
+		var cache = CachedXMLFile.make(path, pos);
 		var selector = exprString(exprSelector);
-		var node = csss.Query.one(xml, selector);
+		var node = csss.Query.one(cache.xml, selector);
 		if (node == null)
 			nvd.Macros.fatalError('Invalid selector or Could not find: "$selector" in $path', exprSelector.pos);
 		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
@@ -88,12 +84,8 @@ class Nvd {
 	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, create = true) {
 		var file = exprString(efile);
 		var css = exprString(selector);
-		var xml = files.get(file);
-		if (xml == null) {
-			xml = readFile(file, efile.pos);
-			files.set(file, xml);
-		}
-		var root = csss.Query.querySelector(xml, css);
+		var cache = CachedXMLFile.make(file, efile.pos);
+		var root = csss.Query.querySelector(cache.xml, css);
 		if (root == null) nvd.Macros.fatalError('Invalid selector or Could not find: "$css"', selector.pos);
 		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
 	}
@@ -110,20 +102,6 @@ class Nvd {
 			nvd.Macros.fatalError(err.toString(), PositionTools.make(fp));
 		}
 		return nvd.Macros.make(root, defs, fp, create);
-	}
-
-	static function readFile(file, pos): csss.xml.Xml {
-		return try {
-			 csss.xml.Xml.parse( sys.io.File.getContent(file) );
-		} catch(err: csss.xml.Parser.XmlParserException) {
-			nvd.Macros.fatalError(err.toString(), PositionTools.make({
-				file: file,
-				min: err.position,
-				max: err.position + 1
-			}));
-		} catch (err: Dynamic) {
-			nvd.Macros.fatalError(Std.string(err), pos);
-		}
 	}
 #end
 }

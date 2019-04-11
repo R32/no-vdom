@@ -45,11 +45,52 @@ private typedef DefInfo = {
 	usecss: Bool,             // keep the css in output/runtime
 }
 
-@:enum private abstract DefType(Int) to Int {
-	var Elem = 0;
-	var Attr = 1;
-	var Prop = 2;
-	var Style = 3;
+enum DefType {
+	Elem;
+	Attr;
+	Prop;
+	Style;
+}
+
+class CachedXMLFile {
+
+	public var xml(default, null): csss.xml.Xml;
+
+	var lastModify: Float;
+
+	function new() {
+		lastModify = 0.;
+	}
+	function update(path: String, pos) {
+		try {
+			var stat = sys.FileSystem.stat(path);
+			var mtile = stat.mtime.getTime();
+			if (mtile > this.lastModify) {
+				this.xml = csss.xml.Xml.parse( sys.io.File.getContent(path) );
+				this.lastModify = mtile;
+			}
+		} catch(err: csss.xml.Parser.XmlParserException) {
+			Macros.fatalError(err.toString(), PositionTools.make({
+				file: path,
+				min: err.position,
+				max: err.position + 1
+			}));
+		} catch (err: Dynamic) {
+			Macros.fatalError(Std.string(err), pos);
+		}
+	}
+
+	public static function make(path, pos): CachedXMLFile {
+		var cache = cached.get(path);
+		if (cache == null) {
+			cache = new CachedXMLFile();
+			cached.set(path, cache);
+		}
+		cache.update(path, pos);
+		return cache;
+	}
+		// cached xml file
+	@:persistent static var cached = new Map<String, CachedXMLFile>();
 }
 
 @:allow(Nvd)
@@ -79,14 +120,11 @@ class Macros {
 
 	static inline var ERR_PREFIX = "[no-vdom]: ";
 
-	static inline function fatalError(msg, pos):Dynamic return Context.fatalError(ERR_PREFIX + msg, pos);
+	static public inline function fatalError(msg, pos):Dynamic return Context.fatalError(ERR_PREFIX + msg, pos);
 
 	// complexType
 	static var ct_dom = macro :js.html.DOMElement;
 	static var ct_str = macro :String;
-
-	// cache xml file
-	@:persistent static var files = new Map<String, csss.xml.Xml>();
 
 	// collections of complexType by tagname
 	@:persistent static var ct_maps = new Map<String, ComplexType>();  // full_name => ComplexType
