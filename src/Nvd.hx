@@ -66,7 +66,7 @@ class Nvd {
 		if (node == null)
 			nvd.Macros.fatalError('Invalid selector or Could not find: "$selector" in $path', exprSelector.pos);
 		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
-		return macro @:pos(pos) (cast js.Browser.document.querySelector($exprSelector): $ctype);
+		return macro @:pos(pos) (js.Syntax.code("document.querySelector({0})", $exprSelector): $ctype);
 	}
 
 	/*

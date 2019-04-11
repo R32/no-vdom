@@ -201,7 +201,6 @@ class Macros {
 			})
 		});
 		if (!allFields.exists("ofSelector")) {
-			var enew = {expr: ENew(cls_path, [macro js.Browser.document.querySelector(s)]), pos: pos};
 			fields.push({
 				name: "ofSelector",
 				access: [APublic, AInline, AStatic],
@@ -209,7 +208,7 @@ class Macros {
 				kind: FFun({
 					args: [{name: "s", type: ct_str}],
 					ret: TPath(cls_path),
-					expr: macro return $enew
+					expr: macro return js.Syntax.code("document.querySelector({0})", s)
 				})
 			});
 		}
