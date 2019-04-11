@@ -73,12 +73,12 @@ class Nvd {
 	example:
 	```hx
 	Nvd.build("file/to/index.html", ".template-1", {
-	    link:  Elem("a"),                // or Elem([1, 0]). same as CSS(".template-1 a")
-	    text:  Prop("p", "textContent"), // same as CSS(".template-1 p").textContent
-	    title: Attr("a", "title"),       // same as CSS(".template-1 a").attribute("title")
-	    cls:   Prop("a", "className"),   // same as CSS(".template-1 a").className
-	    x: Prop(null, "offsetLeft")      // same as CSS(".template-1").offsetLeft
-	    display: Style(null, "display")  // same as CSS(".template-1").style.display
+	    link:    $("a"),
+	    text:    $("p").textContent,
+	    title:   $("a").title,
+	    cls:     $("a").className,
+	    x:       $(null).style.offsetLeft
+	    display: $(null).display
 	}) abstract Foo(nvd.Comp) {}
 	// ....
 	var foo = new Foo();

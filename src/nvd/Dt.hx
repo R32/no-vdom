@@ -8,7 +8,6 @@ DOM Tools
 */
 @:native("dt") class Dt {
 	@:pure
-	@:native("h")
 	public static function make(name: String, ?attr: haxe.DynamicAccess<String>, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (attr != null) {

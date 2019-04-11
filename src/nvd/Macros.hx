@@ -565,12 +565,16 @@ class Macros {
 			}
 			++i;
 		}
-		var subs: Expr;
-		if (exprs.length == 0)
-			subs = macro null;
-		else
-			subs = len == 1 && children[0].nodeType == PCData ? exprs[0] : macro $a{exprs};
-		return macro nvd.Dt.make($v{xml.nodeName}, $v{attr}, $subs);
+		var exprArgs = [macro $v{ xml.nodeName.toUpperCase() }];
+		if ( attr.iterator().hasNext() ) { // ?? Lambda.empty(attr) didn't work
+			exprArgs.push( macro $v{attr} );
+		} else if (exprs.length > 0) {
+			exprArgs.push( macro null );
+		}
+		if (exprs.length > 0) {
+			exprArgs.push( len == 1 && children[0].nodeType == PCData ? exprs[0] : macro $a{exprs} );
+		}
+		return macro nvd.Dt.make( $a{exprArgs} );
 	}
 
 	static function tag2mod(tagname: String, svg: Bool): String {
