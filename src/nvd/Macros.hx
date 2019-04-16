@@ -261,7 +261,7 @@ class XMLComponent {
 
 	// make sure to call tagToCtype(tagName, tyype, true) before this
 	function getPropertyAccess(tagName:String, property:String): FieldAccess {
-		var map = this.isSVG ? svg_access_pool.get(tagName) : html_access_pool.get(tagName);
+		var map = this.isSVG ? svg_access_pool.get(tagName) : html_access_pool.get(tagName.toUpperCase());
 		if (map != null) {
 			var ret = map.get(property);
 			if (ret != null) return ret;
@@ -580,6 +580,7 @@ class XMLComponent {
 		}
 	}
 
+	// Note: make sure that tagname is uppercase if svg is false
 	static function tagToModule(tagname: String, svg: Bool): String {
 		if (svg) {
 			var type = svg_tags.get(tagname);  // keep the original case
@@ -593,10 +594,9 @@ class XMLComponent {
 			}
 			return "js.html." + "svg." + type;
 		} else {
-			tagname = tagname.toUpperCase();   // use uppercase for HTML element
 			var type = html_tags.get(tagname);
 			if (type == null) {
-				type = tagname.charAt(0).toUpperCase() + tagname.substr(1).toLowerCase() + "Element";
+				type = tagname.charAt(0) + tagname.substr(1).toLowerCase() + "Element";
 				html_tags.set(tagname, type);
 			}
 			return "js.html." + type;
@@ -604,6 +604,7 @@ class XMLComponent {
 	}
 
 	static public function tagToCtype(tagname: String, svg:Bool, extract:Bool): ComplexType {
+		if (!svg) tagname = tagname.toUpperCase();
 		var mod = tagToModule(tagname, svg);
 		var ct = ct_maps.get(mod);
 		if (ct == null) {
