@@ -6,6 +6,7 @@ import Nvd.h;
 import nvd.p.HXX;
 
 class NvdTest {
+
 	static function test_hxx() {
 		var str = " this is a {{apply}}, it comes from {{ city || 'bei jing' }}.";
 		var x = HXX.parse(str, 0);
@@ -32,10 +33,10 @@ class NvdTest {
 		eq(x[3], "two", "hehehe");
 		trace("HXX is done!");
 	}
-	static function main() {
-		test_hxx();
-		var d1 = h("div.red.some", [
 
+
+	static function test_h() {
+		var d1 = h("div.red.some", [
 			h("label", [
 				"text node: ",
 				h("input[type=text][value='default value']")
@@ -61,21 +62,19 @@ class NvdTest {
 				h("li", "5"),
 			])
 		]);
-
-
 		var d2 = h("input", "input test");
-
 		var d3 = h("input[type=button].btn", "click");
-
 		document.body.appendChild(d1);
 		document.body.appendChild(d2);
 		document.body.appendChild(d3);
+	}
 
+	static function test_comp() {
 		var foo = new Foo(document.querySelector("div.flex-table"));
-		trace(foo.value);
-		trace(foo.title);
 		foo.value = "a b c";
 		foo.title = "Greeting";
+		trace(foo.value);
+		trace(foo.title);
 
 		var bar: Bar = Bar.ofSelector("div.template-1");
 		trace(bar.x);
@@ -83,9 +82,32 @@ class NvdTest {
 		trace(bar.text);
 		trace(bar.text_node.nodeValue);
 
+		var testSVG = TestSVG.ofSelector("#testSVG");
+
+		// buildString
 		var tee = Tee.create();
 		document.body.appendChild(tee);
 		document.body.appendChild(Bar.create());
+
+		// svg element
+		var lyrics = [
+			"you are my fire",
+			"the one desire",
+			"Believe when I say",
+			"I want it that way",
+		];
+		var lyricsIndex = 0;
+		testSVG.rectOnclick = function(e) {
+			trace(testSVG.text);
+			lyricsIndex = (lyricsIndex + 1) % lyrics.length;
+			testSVG.text = lyrics[lyricsIndex];
+		}
+	}
+
+	static function main() {
+		test_hxx();
+		test_h();
+		test_comp();
 	}
 }
 
@@ -99,7 +121,7 @@ class NvdTest {
 
 @:build(Nvd.build("bin/index.html", "div.template-1", {
 	link:    $("a"),
-	text:    $("p").text,
+	text:    $("p").text, // text is custom property
 	title:   $("a").attr.title,
 	cls:     $("a").className,
 	x:       $(null).offsetLeft,
@@ -108,6 +130,14 @@ class NvdTest {
 })) abstract Bar(nvd.Comp) {
 }
 
+// svg element
+@:build(Nvd.build("bin/index.html", "#testSVG", {
+	rectOnclick:  $("rect").onclick,
+	text:         $("text").textContent,
+}, true)) abstract TestSVG(nvd.Comp) {
+}
+
+// buildString
 @:build(Nvd.buildString(
 '<div class="hehe haha">
 	<label> some thing <input type="text" value="no work!" /></label>

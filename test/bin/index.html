@@ -6,6 +6,7 @@
   <title>test</title>
   <style>
   div.red {color: #f00;}
+  svg{ border: 1px solid #ddd; margin: 8px 0;}
   </style>
 </head>
 <body>
@@ -35,6 +36,12 @@ previousSibling
 <a href="#">Element</a>
 nextSibling
 </div>
+
+<svg id="testSVG" width="220" height="36" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="100%" height="100%" />
+  <text x="4" y="24" fill="red" style="pointer-events: none">You are my fire!</text>
+</svg>
+
 <!--[if lt IE 9]>
 <script type="text/javascript">
 if (Object.defineProperty

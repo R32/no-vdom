@@ -6,11 +6,12 @@ import haxe.macro.Context;
 import haxe.macro.PositionTools;
 import nvd.Macros.exprString;
 import nvd.Macros.CachedXMLFile;
+import nvd.Macros.XMLComponent;
 #end
 
 class Nvd {
 	/*
-	 used for create Tag/Element
+	 used for create HTMLElement and don't use it for SVG elements
 
 	 example:
 
@@ -60,8 +61,8 @@ class Nvd {
 		var selector = exprString(exprSelector);
 		var node = csss.Query.one(cache.xml, selector);
 		if (node == null)
-			nvd.Macros.fatalError('Invalid selector or Could not find: "$selector" in $path', exprSelector.pos);
-		var ctype = nvd.Macros.tagToCtype(node.nodeName, node.nodeName == "SVG", false);
+			nvd.Macros.fatalError('Could not find: "$selector" in $path', exprSelector.pos);
+		var ctype = XMLComponent.tagToCtype(node.nodeName, XMLComponent.checkIsSVG(node) , false);
 		return macro @:pos(pos) (js.Syntax.code("document.querySelector({0})", $exprSelector): $ctype);
 	}
 
@@ -81,27 +82,29 @@ class Nvd {
 	foo.|
 	```
 	*/
-	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, create = true) {
+	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, isSVG = false) {
 		var file = exprString(efile);
 		var css = exprString(selector);
 		var cache = CachedXMLFile.make(file, efile.pos);
-		var root = csss.Query.querySelector(cache.xml, css);
-		if (root == null) nvd.Macros.fatalError('Invalid selector or Could not find: "$css"', selector.pos);
-		return nvd.Macros.make(root, defs, {file: file, min: 0}, create);
+		var top = csss.Query.querySelector(cache.xml, css);
+		if (top == null) nvd.Macros.fatalError('Could not find: "$css" in $file', selector.pos);
+		var comp = new XMLComponent(file, 0, top, isSVG);
+		return nvd.Macros.make(comp, defs);
 	}
 
-	public static function buildString(es: ExprOf<String>, ?defs, create = true) {
+	public static function buildString(es: ExprOf<String>, ?defs, isSVG = false) {
 		var txt = exprString(es);
-		var fp = PositionTools.getInfos(es.pos);
-		fp.min += 1; // the 1 width of the quotes
-		var root = try {
+		var pos = PositionTools.getInfos(es.pos);
+		pos.min += 1; // the 1 width of the quotes
+		var top = try {
 			csss.xml.Xml.parse(txt).firstElement();
 		} catch (err: csss.xml.Parser.XmlParserException) {
-			fp.min += err.position;
-			fp.max = fp.min + 1;
-			nvd.Macros.fatalError(err.toString(), PositionTools.make(fp));
+			pos.min += err.position;
+			pos.max = pos.min + 1;
+			nvd.Macros.fatalError(err.toString(), PositionTools.make(pos));
 		}
-		return nvd.Macros.make(root, defs, fp, create);
+		var comp = new XMLComponent(pos.file, pos.min, top, isSVG);
+		return nvd.Macros.make(comp, defs);
 	}
 #end
 }

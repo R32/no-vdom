@@ -2,8 +2,9 @@
 class Demo {
 	static function main() {
 		// hello world
-		var hw = HelloWorld.ofSelector(".hello-world");
-		hw.text = "你好, 世界!";
+		var hi = HelloWorld.ofSelector(".hello-world");
+		hi.text = "你好, 世界!";
+		trace(hi.text);
 
 		// tick
 		var tick = Tick.ofSelector(".tick");
