@@ -9,9 +9,9 @@ git version:
 
 ```bash
 # Install dependence(only used in macro/compile time)
-git clone https://github.com/R32/css-selector css-selector --depth 3
+git clone https://github.com/R32/css-selector.git css-selector --depth 3
 # haxelib dev libname folder
-haxelib dev css-selector css-selector
+haxelib dev csss css-selector
 
 # Clone this repo to local
 git clone https://github.com/R32/no-vdom.git no-vdom --depth 3
