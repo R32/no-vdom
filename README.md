@@ -1,18 +1,33 @@
 no-vdom
 --------
 
-A haxelib for HTML data building in macro
+A haxelib used for static(in compile time) HTML data building
+
+## Installation
+
+git version:
+
+```bash
+# Install dependence(only used in macro/compile time)
+git clone https://github.com/R32/css-selector css-selector --depth 3
+# haxelib dev libname folder
+haxelib dev css-selector css-selector
+
+# Clone this repo to local
+git clone https://github.com/R32/no-vdom.git no-vdom --depth 3
+# Set haxelib
+haxelib dev no-vdom no-vdom
+```
+
+## Feature
 
 * Intelligent:
 
   ![screen shot](demo/demo-3.gif)
 
-* **Zero Performance Loss**.
+* **Zero Performance Loss**, Zero runtime dependency
 
-* IE8+ Support. *Note: Need to add polyfills. e.g: [textContext](http://eligrey.com/blog/post/textcontent-in-ie8)*
-
-* issues:
-  - Comment, CDATA and ProcessingInstruction are not allowed to be placed in HTML fragment. (an error will be thrown)
+* IE8+ Support. *Note: Need to add polyfills such as [textContext](http://eligrey.com/blog/post/textcontent-in-ie8)*
 
 * utils:
 
@@ -186,5 +201,6 @@ Demo.main();
 
 ## CHANGES
 
+* `x.x.x`: Added SVG elements support
 * `0.4.0`: added new data binding syntax
 * `0.3.3`: discard HXX.parse
