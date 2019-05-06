@@ -457,7 +457,6 @@ class XMLComponent {
 			"UL"         : "UListElement",
 		//	"VIDEO"      : "VideoElement",
 		}
-
 		svg_tags = {
 			//"a"                   : "AElement",
 			//"animate"             : "AnimateElement",
@@ -512,7 +511,6 @@ class XMLComponent {
 			//"set"                 : "SetElement",
 			//"stop"                : "StopElement",
 			//"style"               : "StyleElement",
-			"svg"                 : "SVGElement",
 			//"switch"              : "SwitchElement",
 			//"symbol"              : "SymbolElement",
 			//"text"                : "TextElement",
@@ -525,15 +523,14 @@ class XMLComponent {
 	}
 
 	static public function checkIsSVG(node: csss.xml.Xml):Bool {
-		var ret = false;
-		while(node != null) {
-			if (node.nodeName == "svg") {
-				ret = true;
-				break;
+		var cur = node;
+		while (cur != null) {
+			if (cur.nodeName == "canvas") {
+				return cur != node;
 			}
-			node = node.parent;
+			cur = cur.parent;
 		}
-		return ret;
+		return false;
 	}
 
 	static function cachedCType(t: Type): ComplexType {
@@ -638,6 +635,10 @@ class XMLComponent {
 		default:
 		}
 		return pass;
+	}
+
+	static function __init__() {
+		init();
 	}
 }
 
