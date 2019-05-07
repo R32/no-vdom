@@ -18,7 +18,7 @@ class NvdTest {
 			case Text(s):
 				r = s == str;
 			}
-			if (r == false) throw new js.Error("haxe line: " + pos.lineNumber);
+			if (r == false) throw new js.lib.Error("haxe line: " + pos.lineNumber);
 		}
 		eq(x[0], " this is a ");
 		eq(x[1], "apply", null);

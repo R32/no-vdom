@@ -639,6 +639,10 @@ class XMLComponent {
 		}
 		return pass;
 	}
+
+	static function __init__() {
+		init();
+	}
 }
 
 class CachedXMLFile {
