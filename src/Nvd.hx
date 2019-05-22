@@ -93,9 +93,16 @@ class Nvd {
 	}
 
 	public static function buildString(es: ExprOf<String>, ?defs, isSVG = false) {
-		var txt = exprString(es);
 		var pos = PositionTools.getInfos(es.pos);
-		pos.min += 1; // the 1 width of the quotes
+		var txt = switch (es.expr) {
+			case EConst(CString(s)):
+				pos.min += 1; // the 1 width of the quotes
+				s;
+			case EMeta({name: ":markup"}, {expr: EConst(CString(s))}):
+				s;
+			default:
+				nvd.Macros.fatalError("Expected String", es.pos);
+		}
 		var top = try {
 			csss.xml.Xml.parse(txt).firstElement();
 		} catch (err: csss.xml.Parser.XmlParserException) {
