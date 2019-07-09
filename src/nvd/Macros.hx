@@ -70,9 +70,9 @@ class XMLComponent {
 	// how many XML nodes in this XMLComponent, available after call parseXML
 	public var count(default, null): Int;
 
-	// the position of top.nodeName
-	public var posBegin(default, null): Int;
-	public var posFile(default, null): String;
+	public var posOffset(default, null): Int;
+
+	public var path(default, null): String;
 
 	public var top(default, null): csss.xml.Xml;
 
@@ -80,11 +80,11 @@ class XMLComponent {
 
 	public var bindings(default, null): Map<String, FieldInfos>;
 
-	public function new(relFile, posStart, node, svg) {
+	public function new(p, offset, node, svg) {
 		init();  // static init
 		count = 0;
-		posFile = relFile;
-		posBegin = posStart;
+		path = p;
+		posOffset = offset;
 		top = node;
 		bindings = new Map();
 		isSVG = svg;
@@ -96,14 +96,14 @@ class XMLComponent {
 
 	public function offsetPosition(offset:Int, len:Int):Position {
 		return PositionTools.make({
-			file: posFile,
-			min: posBegin + offset,
-			max: posBegin + offset + len
+			file: path,
+			min: posOffset + offset,
+			max: posOffset + offset + len
 		});
 	}
 
-	public function childXMLPosition(sub: csss.xml.Xml):Position {
-		return offsetPosition(sub.nodePos, sub.nodeName.length);
+	public inline function childXMLPosition(sub: csss.xml.Xml):Position {
+		return offsetPosition(sub.nodeBinPos, sub.nodeName.length);
 	}
 
 	public function parseDefs(defs: Expr) {
@@ -221,7 +221,7 @@ class XMLComponent {
 
 	function parseXMLInner(xml: csss.xml.Xml):Expr {
 		var attr = new haxe.DynamicAccess<String>();
-		var a: Array<String> = @:privateAccess xml.attributeMap;
+		var a = @:privateAccess xml.attributeMap;
 		var i = 0;
 		while (i < a.length) {
 			attr.set(a[i], a[i + 1]);
@@ -665,8 +665,8 @@ class CachedXMLFile {
 		} catch(err: csss.xml.Parser.XmlParserException) {
 			Macros.fatalError(err.toString(), PositionTools.make({
 				file: path,
-				min: err.position,
-				max: err.position + 1
+				min: err.bpos,
+				max: err.bpos + 1
 			}));
 		} catch (err: Dynamic) {
 			Macros.fatalError(Std.string(err), pos);
@@ -864,8 +864,8 @@ class Macros {
 			}
 		}
 
-		if (comp.posBegin == 0) {// from Nvd.build
-			Context.registerModuleDependency(cls.module, comp.posFile);
+		if (comp.posOffset == 0) {// from Nvd.build
+			Context.registerModuleDependency(cls.module, comp.path);
 		}
 		return fields;
 	}
