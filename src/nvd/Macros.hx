@@ -103,7 +103,7 @@ class XMLComponent {
 	}
 
 	public inline function childXMLPosition(sub: csss.xml.Xml):Position {
-		return offsetPosition(sub.nodeBinPos, sub.nodeName.length);
+		return offsetPosition(sub.nodePos, sub.nodeName.length);
 	}
 
 	public function parseDefs(defs: Expr) {
@@ -221,7 +221,7 @@ class XMLComponent {
 
 	function parseXMLInner(xml: csss.xml.Xml):Expr {
 		var attr = new haxe.DynamicAccess<String>();
-		var a = @:privateAccess xml.attributeMap;
+		var a = @:privateAccess xml.attributeMap; // [(attr, value), ...]
 		var i = 0;
 		while (i < a.length) {
 			attr.set(a[i], a[i + 1]);
@@ -665,8 +665,8 @@ class CachedXMLFile {
 		} catch(err: csss.xml.Parser.XmlParserException) {
 			Macros.fatalError(err.toString(), PositionTools.make({
 				file: path,
-				min: err.bpos,
-				max: err.bpos + 1
+				min: err.position,
+				max: err.position + 1
 			}));
 		} catch (err: Dynamic) {
 			Macros.fatalError(Std.string(err), pos);
@@ -880,6 +880,8 @@ class Macros {
 		return switch (e.expr) {
 		case EConst(CString(s)):
 			s;
+		case EBinop(OpAdd, e1, e2):
+			exprString(e1) + exprString(e2);
 		default:
 			fatalError("Expected String", e.pos);
 		}

@@ -106,7 +106,7 @@ class Nvd {
 		var top = try {
 			csss.xml.Xml.parse(txt).firstElement();
 		} catch (err: csss.xml.Parser.XmlParserException) {
-			pos.min += err.bpos;
+			pos.min += err.position;
 			pos.max = pos.min + 1;
 			nvd.Macros.fatalError(err.toString(), PositionTools.make(pos));
 		}
