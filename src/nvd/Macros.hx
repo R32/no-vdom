@@ -164,38 +164,10 @@ class XMLComponent {
 
 				case ECall(e, params):
 					switch(e.expr) {
-					case EConst(CIdent(s)): // For compatibility with old
+					case EConst(CIdent("$")):
 						var assoc = this.getDOMAttr(params[0]);
 						inline function isKeepCSS(n) return assoc.css != null && params.length > n && Macros.exprBool(params[n]);
-						switch(s) {
-						case "$" | "Elem":
-							bindings.set(f.field, new FieldInfos(assoc, Elem, null, assoc.ctype, true, isKeepCSS(1), false));
-						case "Attr":
-							bindings.set(f.field, new FieldInfos(assoc, Attr, Macros.exprString(params[1]), ct_str, false, isKeepCSS(2), false));
-						case "Prop":
-							var property = Macros.exprString(params[1]);
-							var access = getPropertyAccess(assoc.xml.nodeName, property);
-							var isCustom = false;
-							if (access == null) {
-								if (!this.isSVG) {
-									access = custom_props_access.get(property);
-								}
-								if (access == null)
-									Macros.fatalError('${assoc.xml.nodeName} has no field "$property"', params[1].pos);
-								isCustom = true;
-							}
-							var readOnly = !(access.vacc == AccNormal && simpleValid(assoc.xml, property));
-							bindings.set(f.field, new FieldInfos(assoc, Prop, property, access.ctype, readOnly, isKeepCSS(2), isCustom));
-						case "Style":
-							var property = Macros.exprString(params[1]);
-							var access = style_access.get(property);
-							if (access == null)
-								Macros.fatalError('js.html.CSSStyleDeclaration has no field "$property"', params[1].pos);
-							var readOnly = access.vacc != AccNormal;
-							bindings.set(f.field, new FieldInfos(assoc, Style, property, access.ctype, readOnly, isKeepCSS(2), false));
-						case _:
-							Macros.fatalError('Unsupported : ' + s, e.pos);
-						}
+						bindings.set(f.field, new FieldInfos(assoc, Elem, null, assoc.ctype, true, isKeepCSS(1), false));
 					case _:
 						Macros.fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
 					}
