@@ -80,6 +80,8 @@ class XMLComponent {
 
 	public var bindings(default, null): Map<String, FieldInfos>;
 
+	public var isInline: Bool;
+
 	public function new(p, offset, node, svg) {
 		init();  // static init
 		count = 0;
@@ -191,36 +193,63 @@ class XMLComponent {
 		return parseXMLInner(this.top);
 	}
 
+	function inlineHXXExpr(s:String, pos:Position):Expr {
+		return if (isInline && s.charCodeAt(0) == "{".code && s.charCodeAt(s.length - 1) == "}".code) {
+			var sexpr = StringTools.trim( s.substr(1, s.length - 2) );
+			Context.parse(sexpr, pos);
+		} else {
+			{expr: EConst(CString(s)), pos: pos};
+		}
+	}
+
 	function parseXMLInner(xml: csss.xml.Xml):Expr {
-		var attr = new haxe.DynamicAccess<String>();
+		var attr = new Array<ObjectField>();
 		var a = @:privateAccess xml.attributeMap; // [(attr, value), ...]
 		var i = 0;
 		while (i < a.length) {
-			attr.set(a[i], a[i + 1]);
+			var name  = a[i];
+			var value = a[i + 1];
+			var spos = offsetPosition(xml.attrPos(name), name.length);
+			attr.push({field: name, expr: inlineHXXExpr(value, spos)});
 			i += 2;
 		}
-		attr.remove("id");
 		var children = @:privateAccess xml.children;
 		var len = children.length;
 		var exprs = [];
-		var i = 0, j = 0;
+		var i = 0;
 		while (i < len) {
 			var child = children[i];
 			if (child.nodeType == Element) {
 				exprs.push( parseXMLInner(child) );
-				++ j;
 			} else if (child.nodeType == PCData) {
-				// discard HXX.parse
-				if (child.nodeValue != "")
-					exprs.push(macro $v{child.nodeValue});
+				var text = child.nodeValue;
+				if (text != "") {
+					var spos = offsetPosition(child.nodePos , text.length);
+					var lbrace = isInline ? text.indexOf("{{") : -1; // NOTE: Only one {{HXX}} is supported.
+					var rbrace = lbrace == -1 ? -1 : text.lastIndexOf("}}");
+					if (lbrace != -1 && rbrace != -1) {
+						var e = inlineHXXExpr(text.substring(lbrace + 1, rbrace + 1), spos);
+						if (lbrace > 0) {
+							e = {expr: EBinop(OpAdd, macro $v{ text.substr(0, lbrace) } , e), pos: spos};
+						}
+						rbrace += 2;
+						if (rbrace != text.length) {
+							e = {expr: EBinop(OpAdd, e , macro $v{ text.substr(rbrace) }), pos: spos};
+						}
+						exprs.push(e);
+					} else {
+						exprs.push({expr: EConst(CString(text)), pos: spos});
+					}
+				}
 			} else {
 				Macros.fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", this.childXMLPosition(child) );
 			}
 			++i;
 		}
+		var pos = offsetPosition(xml.nodePos, xml.nodeName.length);
 		var exprArgs = [macro $v{ xml.nodeName.toUpperCase() }];
-		if ( attr.iterator().hasNext() ) { // ?? Lambda.empty(attr) didn't work
-			exprArgs.push( macro $v{attr} );
+		if ( attr.length > 0 ) {
+			exprArgs.push( {expr: EObjectDecl(attr), pos: pos} );
 		} else if (exprs.length > 0) {
 			exprArgs.push( macro null );
 		}
@@ -228,7 +257,7 @@ class XMLComponent {
 			exprArgs.push( len == 1 && children[0].nodeType == PCData ? exprs[0] : macro $a{exprs} );
 		}
 		this.count++;
-		return macro nvd.Dt.make( $a{exprArgs} );
+		return macro @:pos(pos) nvd.Dt.make( $a{exprArgs} );
 	}
 
 	// make sure to call tagToCtype(tagName, tyype, true) before this
@@ -661,28 +690,6 @@ class CachedXMLFile {
 
 @:allow(Nvd)
 class Macros {
-	// only for Nvd.h()
-	static function attrParse(e: Expr, attr): Expr {
-		return switch (e.expr) {
-		case EConst(CString(s)):
-			var name: String;
-			var p = CValid.ident(s, 0, s.length, CValid.is_alpha_u, CValid.is_anum); // no longer allow "." for tagname
-			if (p == 0) fatalError('Invalid TagName: "$s"', e.pos);
-			if (p == s.length) {
-				name = s.toUpperCase();
-			} else {
-				name = s.substr(0, p).toUpperCase();
-				nvd.p.Attr.run(s, p, s.length, attr);
-			}
-			macro $v{name};
-		default:
-			fatalError("Unsupported type", e.pos);
-		}
-	}
-
-
-	/////////////////////////////////////////////////////////////////////
-
 
 	static inline var ERR_PREFIX = "[no-vdom]: ";
 

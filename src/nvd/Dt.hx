@@ -8,10 +8,10 @@ DOM Tools
 */
 @:native("dt") class Dt {
 	@:pure
+	@:native("h")
 	public static function make(name: String, ?attr: haxe.DynamicAccess<String>, ?dyn: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (attr != null) {
-			//for (k in attr.keys()) dom.setAttribute(k, attr.get(k));
 			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 		}
 		if (dyn != null) {
@@ -23,7 +23,7 @@ DOM Tools
 					var v: Dynamic = dyn[i];
 					if (Std.is(v, String)) {
 						dom.appendChild(document.createTextNode(v));
-					} else { // if (Std.is(v, js.html.Node)) { // TODO: IE8 doesn't support "Node"
+					} else { // if ( Std.is(v, js.html.Element) || Std.is(v, js.html.Text) ) {
 						dom.appendChild(v);
 					}
 					++ i;
@@ -93,7 +93,6 @@ DOM Tools
 	}
 
 	public static function setStyle(dom: DOMElement, styles: haxe.DynamicAccess<Any>): Void {
-		//for (k in style.keys()) Reflect.setField(dom.style, k, style.get(k));
 		js.Syntax.code("for(var k in {0}) {1}[k] = {0}[k]", styles, dom.style);
 	}
 

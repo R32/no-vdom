@@ -11,38 +11,32 @@ import nvd.Macros.XMLComponent;
 
 class Nvd {
 	/*
-	 used for create HTMLElement and don't use it for SVG elements
+	simple HXX.
 
-	 example:
+	Uses `{code}` in attribute-value, no spaces are allowed if there are no quotes.
 
-	 ```hx
-	 h("a.btn", "click here...");          => "<a class="btn">click here...</a>"
+	Uses `{{code}}` in textContent
 
-	 h("h4", [" tick: ", h("span", "1")]); => "<h4> tick: <span>1</span></h4>"
-
-	 h("div.cls1", [
-		h("label", [
-			"text node: ",
-			h("input[type=text][value='default value']")
-		]),
-		h("a[href='javascript:void(0)']#uid", "link to ...")
-	 ])
-	 ```
+	```hx
+		var title = "hi there";
+		var content = "click here";
+		var fn = function(){ return "string"; }
+		var div = HXX(
+			<div>
+				<a class="btn" title="{ title }"> LL {{ content }} RR </a>
+				<br />
+				<span title={title}>{{ fn() }}</span>
+			</div>
+		);
+		document.body.appendChild(div);
+	```
 	*/
-	macro public static function h(exprs: Array<Expr>) {
-		var attr = {};
-		var name = nvd.Macros.attrParse(exprs[0], attr);
-		var exprAttr = Reflect.fields(attr).length == 0 ? macro null : macro $v{attr};
-		var ret = [name, exprAttr];
-		if (exprs.length > 1) {
-			switch (exprs[1].expr) {
-			case ExprDef.EArrayDecl(_), ExprDef.EConst(_):
-				ret.push(exprs[1]); // text, or subs
-			default:
-				nvd.Macros.fatalError("Unsupported type", exprs[1].pos);
-			}
-		}
-		return macro nvd.Dt.make($a{ret});
+	macro public static function HXX(markup: Expr) {
+		var comp = parseMarkup(markup, false);
+		comp.isInline = true;
+		var expr = comp.parseXML();
+		var ctype = comp.getCType(comp.top.nodeName);
+		return macro @:pos(markup.pos) (cast $expr: $ctype);
 	}
 #if macro
 	/**
@@ -93,15 +87,19 @@ class Nvd {
 	}
 
 	public static function buildString(es: ExprOf<String>, ?defs, isSVG = false) {
-		var pos = PositionTools.getInfos(es.pos);
-		var txt = switch (es.expr) {
+		return nvd.Macros.make(parseMarkup(es, isSVG), defs);
+	}
+
+	static function parseMarkup(markup: Expr, isSVG: Bool): XMLComponent {
+		var pos = PositionTools.getInfos(markup.pos);
+		var txt = switch (markup.expr) {
 			case EConst(CString(s)):
 				pos.min += 1; // the 1 width of the quotes
 				s;
 			case EMeta({name: ":markup"}, {expr: EConst(CString(s))}):
 				s;
 			default:
-				nvd.Macros.fatalError("Expected String", es.pos);
+				nvd.Macros.fatalError("Expected String", markup.pos);
 		}
 		var top = try {
 			csss.xml.Xml.parse(txt).firstElement();
@@ -110,8 +108,7 @@ class Nvd {
 			pos.max = pos.min + 1;
 			nvd.Macros.fatalError(err.toString(), PositionTools.make(pos));
 		}
-		var comp = new XMLComponent(pos.file, pos.min, top, isSVG);
-		return nvd.Macros.make(comp, defs);
+		return new XMLComponent(pos.file, pos.min, top, isSVG);
 	}
 #end
 }
