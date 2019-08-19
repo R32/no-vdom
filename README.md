@@ -31,6 +31,22 @@ haxelib dev no-vdom no-vdom
 
 * utils:
 
+  Simple `HXX` for building simple Elements.
+
+  ```js
+  var title = "hi there";
+  var content = "click here";
+  var fn = function(){ return "element span"; }
+  var div = Nvd.HXX(
+    <div>
+      <a class="btn" title="{ title }"> LL {{ content }} RR </a>
+      <br />
+      <span title={title}>{{ fn() }}</span>
+    </div>
+  );
+  document.body.appendChild(div);
+  ```
+
   Verify css query: *(See the GIF above)*
 
   ```haxe
@@ -201,6 +217,8 @@ Demo.main();
 
 ## CHANGES
 
-* `x.x.x`: Added SVG elements support
+* `x.x.x`:
+  Added Simple `HXX`
+  Added SVG elements support(Only for Query)
 * `0.4.0`: added new data binding syntax
 * `0.3.3`: discard HXX.parse
