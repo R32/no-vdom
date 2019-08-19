@@ -5,7 +5,6 @@ import haxe.macro.Expr;
 import haxe.macro.Type;
 import haxe.macro.Context;
 import haxe.macro.PositionTools;
-import nvd.p.HXX;
 import csss.CValid;
 import csss.xml.Xml;
 using csss.Query;
