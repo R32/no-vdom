@@ -890,10 +890,12 @@ class Macros {
 		return fields;
 	}
 
+	// [1,0,3] => this.children[1].children[0].children[3]
 	static function exprChildren(a: Array<Int>, pos) {
+		var thiz = macro @:pos(pos) cast this;
 		return a.length > 0
-		? {expr: ECast(Context.parseInlineString("d.children[" + a.join("].children[") + "]", pos), null), pos: pos}
-		: macro cast this;
+		? Lambda.fold(a, (item, prev)-> macro @:pos(pos) (cast $prev).children[$v{item}], thiz)
+		: thiz;
 	}
 
 	static function exprString(e: Expr): String {
