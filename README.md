@@ -218,7 +218,7 @@ Demo.main();
 ## CHANGES
 
 * `x.x.x`:
-  Added Simple `HXX`
-  Added SVG elements support(Only for Query)
+  - Added Simple `HXX`
+  - Added SVG elements support(Only for Query)
 * `0.4.0`: added new data binding syntax
 * `0.3.3`: discard HXX.parse

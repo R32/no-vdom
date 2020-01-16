@@ -63,6 +63,11 @@ private enum FieldType {
 	Style;
 }
 
+private enum HXXState {
+	BEGIN;
+	BRACE_START;
+}
+
 @:access(nvd.Macros)
 class XMLComponent {
 
@@ -79,7 +84,7 @@ class XMLComponent {
 
 	public var bindings(default, null): Map<String, FieldInfos>;
 
-	public var isInline: Bool;
+	public var isHXX: Bool;
 
 	public function new(p, offset, node, svg) {
 		init();  // static init
@@ -192,13 +197,64 @@ class XMLComponent {
 		return parseXMLInner(this.top);
 	}
 
-	function inlineHXXExpr(s:String, pos:Position):Expr {
-		return if (isInline && s.charCodeAt(0) == "{".code && s.charCodeAt(s.length - 1) == "}".code) {
-			var sexpr = StringTools.trim( s.substr(1, s.length - 2) );
-			Context.parse(sexpr, pos);
-		} else {
-			{expr: EConst(CString(s)), pos: pos};
+	function HXXVaribles(s:String, pos:Position, twin:Bool): Expr {
+		var ret = {expr: EConst(CString(s)), pos: pos};
+		if (!isHXX)
+			return ret;
+		var wchar = twin ? 2 : 1;
+		var yet = twin;
+		var col = [];
+		var i = 0;
+		var len = s.length;
+		var start = 0;
+		var state = BEGIN;
+		while (i < len) {
+			var c = StringTools.fastCodeAt(s, i++);
+			switch(state) {
+			case BEGIN: // BEGIN
+				if (c == "{".code) {
+					if (yet) {
+						yet = false;
+					} else {
+						if (i > start + wchar) {
+							var sub = s.substr(start, i - wchar - start);
+							col.push({expr: EConst(CString(sub)), pos: pos});
+						}
+						start = i;
+						state = BRACE_START;
+						yet = twin; // reset for next
+					}
+				}
+			case BRACE_START:
+				if (c == "}".code) {
+					if (yet) {
+						yet = false;
+					} else {
+						if (i > start + wchar) {
+							var sub = StringTools.trim( s.substr(start, i - wchar - start) );
+							if (sub != "")
+								col.push( Context.parse(sub, pos) );
+						}
+						start = i;
+						state = BEGIN;
+						yet = twin; // reset for next
+					}
+				}
+			}
 		}
+		if (state == BRACE_START)
+			Macros.fatalError("Expected }", pos);
+		if (i > start) {
+			var sub = s.substr(start, i - start);
+			col.push({expr: EConst(CString(sub)), pos: pos});
+		}
+		if (col.length == 1) {
+			ret = col[0];
+		} else if (col.length > 1) {
+			var prev = col.shift();
+			ret = Lambda.fold(col, (item,prev)->{expr : EBinop(OpAdd, prev, item), pos : item.pos}, prev);
+		}
+		return ret;
 	}
 
 	function parseXMLInner(xml: csss.xml.Xml):Expr {
@@ -209,7 +265,7 @@ class XMLComponent {
 			var name  = a[i];
 			var value = a[i + 1];
 			var spos = offsetPosition(xml.attrPos(name), name.length);
-			attr.push({field: name, expr: inlineHXXExpr(value, spos)});
+			attr.push({field: name, expr: HXXVaribles(value, spos, false)});
 			i += 2;
 		}
 		var children = @:privateAccess xml.children;
@@ -224,21 +280,7 @@ class XMLComponent {
 				var text = child.nodeValue;
 				if (text != "") {
 					var spos = offsetPosition(child.nodePos , text.length);
-					var lbrace = isInline ? text.indexOf("{{") : -1; // NOTE: Only one {{HXX}} is supported.
-					var rbrace = lbrace == -1 ? -1 : text.lastIndexOf("}}");
-					if (lbrace != -1 && rbrace != -1) {
-						var e = inlineHXXExpr(text.substring(lbrace + 1, rbrace + 1), spos);
-						if (lbrace > 0) {
-							e = {expr: EBinop(OpAdd, macro $v{ text.substr(0, lbrace) } , e), pos: spos};
-						}
-						rbrace += 2;
-						if (rbrace != text.length) {
-							e = {expr: EBinop(OpAdd, e , macro $v{ text.substr(rbrace) }), pos: spos};
-						}
-						exprs.push(e);
-					} else {
-						exprs.push({expr: EConst(CString(text)), pos: spos});
-					}
+					exprs.push( HXXVaribles(text, spos, true) );
 				}
 			} else {
 				Macros.fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", this.childXMLPosition(child) );
@@ -246,7 +288,7 @@ class XMLComponent {
 			++i;
 		}
 		var pos = offsetPosition(xml.nodePos, xml.nodeName.length);
-		var exprArgs = [macro $v{ xml.nodeName.toUpperCase() }];
+		var exprArgs = [macro $v{ xml.nodeName }];
 		if ( attr.length > 0 ) {
 			exprArgs.push( {expr: EObjectDecl(attr), pos: pos} );
 		} else if (exprs.length > 0) {

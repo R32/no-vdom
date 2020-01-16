@@ -33,7 +33,7 @@ class Nvd {
 	*/
 	macro public static function HXX(markup: Expr) {
 		var comp = parseMarkup(markup, false);
-		comp.isInline = true;
+		comp.isHXX = true;
 		var expr = comp.parseXML();
 		var ctype = comp.getCType(comp.top.nodeName);
 		return macro @:pos(markup.pos) (cast $expr: $ctype);
