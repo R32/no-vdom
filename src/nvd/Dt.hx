@@ -15,9 +15,7 @@ DOM Tools
 			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 		}
 		if (dyn != null) {
-			if (Std.is(dyn, String)) {
-				setText(dom, dyn);
-			} else if (Std.is(dyn, Array)) {
+			if (Std.is(dyn, Array)) {
 				var i = 0;
 				while (i < dyn.length) {
 					var v: Dynamic = dyn[i];
@@ -28,6 +26,8 @@ DOM Tools
 					}
 					++ i;
 				}
+			} else {
+				setText(dom, dyn);
 			}
 		}
 		return dom;
