@@ -303,9 +303,9 @@ class XMLComponent {
 					var css = $e{exprs[0]};
 					var n = nvd.Dt.make( $a{exprArgs} );
 					if ((cast n).styleSheet) {
-						n.textContent = css;
-					} else {
 						(cast n).styleSheet.cssText = css;
+					} else {
+						n.textContent = css;
 					}
 					n;
 				}
