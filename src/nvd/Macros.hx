@@ -295,6 +295,21 @@ class XMLComponent {
 			exprArgs.push( macro null );
 		}
 		if (exprs.length > 0) {
+			// hacks style.textContent for IE, and you should put something like
+			// HXX("<style>{{css}}<style>") in non-inline function with @:analyzer(no_const_propagation)
+			if (xml.nodeName.toUpperCase() == "STYLE" && len == 1 && children[0].nodeType == PCData) {
+				this.count++;
+				return macro @:pos(pos) {
+					var css = $e{exprs[0]};
+					var n = nvd.Dt.make( $a{exprArgs} );
+					if ((cast n).styleSheet) {
+						n.textContent = css;
+					} else {
+						(cast n).styleSheet.cssText = css;
+					}
+					n;
+				}
+			}
 			exprArgs.push( len == 1 && children[0].nodeType == PCData ? exprs[0] : macro $a{exprs} );
 		}
 		this.count++;
