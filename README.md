@@ -27,7 +27,7 @@ haxelib dev no-vdom no-vdom
 
 * **Zero Performance Loss**, Zero runtime dependency
 
-* IE8+ Support. *Note: Need to add polyfills such as [textContext](http://eligrey.com/blog/post/textcontent-in-ie8)*
+* IE8+ Support. *Note: Needs polyfills such as [textContext](http://eligrey.com/blog/post/textcontent-in-ie8)*
 
 * utils:
 

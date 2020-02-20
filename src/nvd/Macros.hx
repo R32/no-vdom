@@ -650,7 +650,7 @@ class XMLComponent {
 		var mod = tagToModule(tagname, svg);
 		var ct = ct_maps.get(mod);
 		if (ct == null) {
-			var type = Context.getType(mod);
+			var type = try Context.getType(mod) catch(e:Dynamic){ Context.getType("js.html.DOMElement"); }
 			if (extract) {
 				var pool = svg ? svg_access_pool : html_access_pool;
 				var fc = pool.get(tagname);
