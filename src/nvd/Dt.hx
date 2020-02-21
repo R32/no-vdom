@@ -7,6 +7,9 @@ import js.Browser.document;
 DOM Tools
 */
 @:native("dt") class Dt {
+	/**
+	 You don't need to use it which will be called automatically by macro
+	*/
 	@:pure
 	@:native("h")
 	public static function make(name: String, ?attr: haxe.DynamicAccess<String>, ?dyn: Dynamic):DOMElement {
@@ -27,7 +30,7 @@ DOM Tools
 					++ i;
 				}
 			} else {
-				setText(dom, dyn);
+				dom.textContent = dyn;
 			}
 		}
 		return dom;
