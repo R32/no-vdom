@@ -87,7 +87,6 @@ class XMLComponent {
 	public var isHXX: Bool;
 
 	public function new(p, offset, node, svg) {
-		init();  // static init
 		count = 0;
 		path = p;
 		posOffset = offset;
@@ -112,82 +111,84 @@ class XMLComponent {
 		return offsetPosition(sub.nodePos, sub.nodeName.length);
 	}
 
+	function objectDeclField(f : ObjectField) {
+		if ( bindings.exists(f.field) )
+			Macros.fatalError("Duplicate definition", f.expr.pos);
+		switch (f.expr.expr) {
+		case EField(e, property):
+			var type = Prop;
+			var params = switch(e.expr) {
+			case ECall(macro $i{"$"}, params):
+				params;
+			case EField({expr: ECall(macro $i{"$"}, params), pos: p}, t):
+				if (t == "style") {
+					type = Style;
+				} else if (t == "attr") {
+					type = Attr;
+				} else {
+					Macros.fatalError('Unsupported EField: ' + t, Macros.getEFieldPosition(e.pos, p));
+				}
+				params;
+			case _:
+				Macros.fatalError('Unsupported: ' + f.expr.toString(), f.expr.pos);
+			}
+			var assoc = this.getDOMAttr(params[0]);
+			var keepCSS = assoc.css != null && params.length == 2 && Macros.exprBool(params[1]);
+			var access: FieldAccess;
+			var readOnly = false;
+			var isCustom = false;
+			if (type == Prop) {
+				access = getPropertyAccess(assoc.xml.nodeName, property);
+				if (access == null) {
+					if (!this.isSVG) {
+						access = custom_props_access.get(property);
+					}
+					if (access == null)
+						Macros.fatalError('${assoc.xml.nodeName} has no field "$property"', Macros.getEFieldPosition(f.expr.pos, e.pos));
+					isCustom = true;
+				}
+				readOnly = !(access.vacc == AccNormal && simpleValid(assoc.xml, property));
+			} else if (type == Style) {
+				access = style_access.get(property);
+				if (access == null)
+					Macros.fatalError('js.html.CSSStyleDeclaration has no field "$property"', Macros.getEFieldPosition(f.expr.pos, e.pos));
+				readOnly = access.vacc != AccNormal;
+			} else { // Attr
+				access = {
+					ctype: ct_str,
+					vacc: AccNormal,
+				}
+				readOnly = false;
+			}
+			bindings.set(f.field, new FieldInfos(assoc, type, property, access.ctype, readOnly, keepCSS, isCustom));
+
+		case ECall(e, params):
+			switch(e.expr) {
+			case EConst(CIdent("$")):
+				var assoc = this.getDOMAttr(params[0]);
+				inline function isKeepCSS(n) return assoc.css != null && params.length > n && Macros.exprBool(params[n]);
+				bindings.set(f.field, new FieldInfos(assoc, Elem, null, assoc.ctype, true, isKeepCSS(1), false));
+			case _:
+				Macros.fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
+			}
+
+		case EArray({expr: EField({expr: ECall(macro $i{"$"}, query), pos: _}, "attr"), pos: _}, macro $v{(attribute:String)}):
+			// $(selector).attr["ATTRIBUTE"]
+			var assoc = this.getDOMAttr(query[0]);
+			var keepCSS = assoc.css != null && query.length >= 2 && Macros.exprBool(query[1]);
+			bindings.set(f.field, new FieldInfos(assoc, Attr, attribute, ct_str, false, keepCSS, false));
+
+		default:
+			Macros.fatalError('Unsupported argument', f.expr.pos);
+		}
+	}
+
 	public function parseDefs(defs: Expr) {
 		switch (defs.expr) {
 		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
 		case EObjectDecl(a):
-			for (f in a) {
-				if ( bindings.exists(f.field) ) {
-					Macros.fatalError("Duplicate definition", f.expr.pos);
-				}
-				switch (f.expr.expr) {
-				case EField(e, property):
-					var type = Prop;
-					var params = switch(e.expr) {
-					case ECall(macro $i{"$"}, params):
-						params;
-					case EField({expr: ECall(macro $i{"$"}, params), pos: p}, t):
-						if (t == "style") {
-							type = Style;
-						} else if (t == "attr") {
-							type = Attr;
-						} else {
-							Macros.fatalError('Unsupported EField: ' + t, Macros.getEFieldPosition(e.pos, p));
-						}
-						params;
-					case _:
-						Macros.fatalError('Unsupported: ' + f.expr.toString(), f.expr.pos);
-					}
-					var assoc = this.getDOMAttr(params[0]);
-					var keepCSS = assoc.css != null && params.length == 2 && Macros.exprBool(params[1]);
-					var access: FieldAccess;
-					var readOnly = false;
-					var isCustom = false;
-					if (type == Prop) {
-						access = getPropertyAccess(assoc.xml.nodeName, property);
-						if (access == null) {
-							if (!this.isSVG) {
-								access = custom_props_access.get(property);
-							}
-							if (access == null)
-								Macros.fatalError('${assoc.xml.nodeName} has no field "$property"', Macros.getEFieldPosition(f.expr.pos, e.pos));
-							isCustom = true;
-						}
-						readOnly = !(access.vacc == AccNormal && simpleValid(assoc.xml, property));
-					} else if (type == Style) {
-						access = style_access.get(property);
-						if (access == null)
-							Macros.fatalError('js.html.CSSStyleDeclaration has no field "$property"', Macros.getEFieldPosition(f.expr.pos, e.pos));
-						readOnly = access.vacc != AccNormal;
-					} else { // Attr
-						access = {
-							ctype: ct_str,
-							vacc: AccNormal,
-						}
-						readOnly = false;
-					}
-					bindings.set(f.field, new FieldInfos(assoc, type, property, access.ctype, readOnly, keepCSS, isCustom));
-
-				case ECall(e, params):
-					switch(e.expr) {
-					case EConst(CIdent("$")):
-						var assoc = this.getDOMAttr(params[0]);
-						inline function isKeepCSS(n) return assoc.css != null && params.length > n && Macros.exprBool(params[n]);
-						bindings.set(f.field, new FieldInfos(assoc, Elem, null, assoc.ctype, true, isKeepCSS(1), false));
-					case _:
-						Macros.fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
-					}
-
-				case EArray({expr: EField({expr: ECall(macro $i{"$"}, query), pos: _}, "attr"), pos: _}, macro $v{(attribute:String)}):
-					// $(selector).attr["ATTRIBUTE"]
-					var assoc = this.getDOMAttr(query[0]);
-					var keepCSS = assoc.css != null && query.length >= 2 && Macros.exprBool(query[1]);
-					bindings.set(f.field, new FieldInfos(assoc, Attr, attribute, ct_str, false, keepCSS, false));
-
-				default:
-					Macros.fatalError('Unsupported argument', f.expr.pos);
-				}
-			}
+			for (f in a)
+				objectDeclField(f);
 		default:
 			Macros.fatalError('Unsupported type for "defs"', defs.pos);
 		}
@@ -197,12 +198,12 @@ class XMLComponent {
 		return parseXMLInner(this.top);
 	}
 
-	function HXXVaribles(s:String, pos:Position, twin:Bool): Expr {
+	function HXXVaribles(s:String, pos:Position, evenInit:Bool): Expr {
 		var ret = {expr: EConst(CString(s)), pos: pos};
 		if (!isHXX)
 			return ret;
-		var wchar = twin ? 2 : 1;
-		var yet = twin;
+		var wchar = evenInit ? 2 : 1;
+		var even = evenInit; // if evenInit == true then uses "{{" as delimiter, otherwise "{"
 		var col = [];
 		var i = 0;
 		var len = s.length;
@@ -211,35 +212,32 @@ class XMLComponent {
 		while (i < len) {
 			var c = StringTools.fastCodeAt(s, i++);
 			switch(state) {
-			case BEGIN: // BEGIN
-				if (c == "{".code) {
-					if (yet) {
-						yet = false;
-					} else {
-						if (i > start + wchar) {
-							var sub = s.substr(start, i - wchar - start);
-							col.push({expr: EConst(CString(sub)), pos: pos});
-						}
-						start = i;
-						state = BRACE_START;
-						yet = twin; // reset for next
-					}
+			case BEGIN if (c == "{".code): // BEGIN
+				if (even) {
+					even = false;
+					continue;
 				}
-			case BRACE_START:
-				if (c == "}".code) {
-					if (yet) {
-						yet = false;
-					} else {
-						if (i > start + wchar) {
-							var sub = StringTools.trim( s.substr(start, i - wchar - start) );
-							if (sub != "")
-								col.push( Context.parse(sub, pos) );
-						}
-						start = i;
-						state = BEGIN;
-						yet = twin; // reset for next
-					}
+				if (i > start + wchar) {
+					var sub = s.substr(start, i - wchar - start);
+					col.push({expr: EConst(CString(sub)), pos: pos});
 				}
+				start = i;
+				state = BRACE_START;
+				even = evenInit; // reset for next
+			case BRACE_START if (c == "}".code):
+				if (even) {
+					even = false;
+					continue;
+				}
+				if (i > start + wchar) {
+					var sub = StringTools.trim( s.substr(start, i - wchar - start) );
+					if (sub != "")
+						col.push( Context.parse(sub, pos) );
+				}
+				start = i;
+				state = BEGIN;
+				even = evenInit; // reset for next
+			default:
 			}
 		}
 		if (state == BRACE_START)
@@ -350,24 +348,19 @@ class XMLComponent {
 			ret = null;
 		return ret;
 	}
-	function pathLookup(xml: Xml, path: Array<Int>, pi: Int): Xml {
-		if (path.length == 0) return xml;
-		var i  = 0;
-		var ei = 0;
-		var childs = @:privateAccess xml.children;
-		var max = childs.length;
-		var pv = path[pi++];
-		while (i < max) {
-			if (childs[i].nodeType == Element) {
-				if (ei == pv) {
-					if (pi == path.length)
-						return childs[i];
-					else
-						return pathLookup(childs[i], path, pi);
-				}
-				++ ei;
-			}
-			++ i;
+	function lookup(xml: Xml, path: Array<Int>, next: Int): Xml {
+		if (path.length == 0)
+			return xml;
+		var e = 0;
+		var p = path[next++];
+		var hasNext = next == path.length;
+		var sub = @:privateAccess xml.children;
+		for (i in 0...sub.length) {
+			if (sub[i].nodeType != Element)
+				continue;
+			if (e == p)
+				return hasNext ? sub[i] : lookup(sub[i], path, next);
+			++ e;
 		}
 		return null;
 	}
@@ -397,7 +390,7 @@ class XMLComponent {
 					Macros.fatalError("Expected Int", n.pos);
 				}
 			}
-			xml = pathLookup(top, path, 0);
+			xml = lookup(top, path, 0);
 			if (xml == null)
 				Macros.fatalError('Could not find "${"[" + path.join(",") + "]"}" in ${top.toSimpleString()}', selector.pos);
 		default:
@@ -711,35 +704,36 @@ class CachedXMLFile {
 	function new() {
 		lastModify = 0.;
 	}
+
 	function update(path: String, pos) {
-		try {
-			var stat = sys.FileSystem.stat(path);
-			var mtile = stat.mtime.getTime();
-			if (mtile > this.lastModify) {
-				this.xml = csss.xml.Xml.parse( sys.io.File.getContent(path) );
-				this.lastModify = mtile;
-			}
-		} catch(err: csss.xml.Parser.XmlParserException) {
-			Macros.fatalError(err.toString(), PositionTools.make({
-				file: path,
-				min: err.position,
-				max: err.position + 1
-			}));
-		} catch (err: Dynamic) {
-			Macros.fatalError(Std.string(err), pos);
+		var stat = sys.FileSystem.stat(path);
+		var mtile = stat.mtime.getTime();
+		if (mtile > this.lastModify) {
+			this.xml = csss.xml.Xml.parse( sys.io.File.getContent(path) );
+			this.lastModify = mtile;
 		}
 	}
 
 	public static function make(path, pos): CachedXMLFile {
-		var cache = cached.get(path);
-		if (cache == null) {
-			cache = new CachedXMLFile();
-			cached.set(path, cache);
+		var file = cached.get(path);
+		if (file == null) {
+			file = new CachedXMLFile();
+			cached.set(path, file);
 		}
-		cache.update(path, pos);
-		return cache;
+		try
+			file.update(path, pos)
+		catch(e: csss.xml.Parser.XmlParserException) {
+			Macros.fatalError(e.toString(), PositionTools.make({
+				file: path,
+				min: e.position,
+				max: e.position + 1
+			}));
+		} catch(e : Dynamic) {
+			Macros.fatalError(Std.string(e), pos);
+		}
+		return file;
 	}
-		// cached xml file
+	// cached xml file
 	@:persistent static var cached = new Map<String, CachedXMLFile>();
 }
 
@@ -763,14 +757,13 @@ class Macros {
 			fatalError('Only for abstract type', pos);
 		}
 		var fields = Context.getBuildFields();
-		var allFields = new Map<String, Bool>();
-		for (f in fields) {
-			allFields.set(f.name, true);
-		}
+		var reserve = new Map<String, Bool>();
+		for (f in fields)
+			reserve.set(f.name, true);
 
 		comp.parseDefs(defs);
 
-		if (!allFields.exists("_new")) { // abstract class constructor
+		if (!reserve.exists("_new")) { // abstract class constructor
 			var ct_dom = macro :js.html.DOMElement;
 			fields.push({
 				name: "new",
@@ -801,7 +794,7 @@ class Macros {
 				expr: macro return cast this
 			})
 		});
-		if (!allFields.exists("ofSelector")) {
+		if (!reserve.exists("ofSelector")) {
 			fields.push({
 				name: "ofSelector",
 				access: [APublic, AInline, AStatic],
@@ -813,7 +806,7 @@ class Macros {
 				})
 			});
 		}
-		if (!comp.isSVG && !allFields.exists("create")) {
+		if (!comp.isSVG && !reserve.exists("create")) {
 			var ecreate = comp.parseXML();
 			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
 			fields.push({
@@ -869,34 +862,33 @@ class Macros {
 				}),
 				pos: item.assoc.pos,
 			});
-
-			if (!item.readOnly) {
-				fields.push({
-					name: "set_" + k,
-					access: [APrivate, AInline],
-					kind: FFun({
-						args: [{name: "v", type: item.ctype}],
-						ret: item.ctype,
-						expr: switch (item.type) {
-						case Attr: macro return nvd.Dt.setAttr($edom, $v{ aname }, v);
-						case Prop:
-							var expr = macro return $edom.$aname = v;
-							if (item.isCustom) {
-								switch (aname) {
-								case "text": macro return nvd.Dt.setText($edom, v);
-								case "html": macro return $edom.innerHTML = v;
-								default: expr;
-								}
-							} else {
-								expr;
+			if (item.readOnly)
+				continue;
+			fields.push({
+				name: "set_" + k,
+				access: [APrivate, AInline],
+				kind: FFun({
+					args: [{name: "v", type: item.ctype}],
+					ret: item.ctype,
+					expr: switch (item.type) {
+					case Attr: macro return nvd.Dt.setAttr($edom, $v{ aname }, v);
+					case Prop:
+						var expr = macro return $edom.$aname = v;
+						if (item.isCustom) {
+							switch (aname) {
+							case "text": macro return nvd.Dt.setText($edom, v);
+							case "html": macro return $edom.innerHTML = v;
+							default: expr;
 							}
-						case Style: macro return $edom.style.$aname = v;
-						default: throw "ERROR";
+						} else {
+							expr;
 						}
-					}),
-					pos: item.assoc.pos,
-				});
-			}
+					case Style: macro return $edom.style.$aname = v;
+					default: throw "ERROR";
+					}
+				}),
+				pos: item.assoc.pos,
+			});
 		}
 
 		if (comp.posOffset == 0) {// from Nvd.build
@@ -926,10 +918,8 @@ class Macros {
 
 	static function exprBool(e: Expr): Bool {
 		return switch (e.expr) {
-		case EConst(CIdent("true")):
-			true;
-		default:
-			false;
+		case EConst(CIdent("true")): true;
+		default: false;
 		}
 	}
 
