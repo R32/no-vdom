@@ -90,8 +90,8 @@ DOM Tools
 	}
 
 	public static function getCss(dom: DOMElement, name: String): String {
-		if ((dom: Dynamic).currentStyle != null) {
-			return ((dom: Dynamic).currentStyle: haxe.DynamicAccess<String>)[name];
+		if ((cast dom).currentStyle) {
+			return (cast dom).currentStyle[cast name];
 		} else {
 			return js.Browser.window.getComputedStyle(cast dom, null).getPropertyValue(name);
 		}
@@ -103,7 +103,7 @@ DOM Tools
 
 	public static function lookup(dom: DOMElement, path: Array<Int>): DOMElement {
 		for (p in path)
-			dom = cast dom.children[p];
+			dom = dom.children[p];
 		return dom;
 	}
 }
