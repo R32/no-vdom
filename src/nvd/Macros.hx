@@ -299,7 +299,7 @@ class XMLComponent {
 				this.count++;
 				return macro @:pos(pos) {
 					var css = $e{exprs[0]};
-					var n = nvd.Dt.make( $a{exprArgs} );
+					var n = @:privateAccess nvd.Dt.h( $a{exprArgs} );
 					if ((cast n).styleSheet) {
 						(cast n).styleSheet.cssText = css;
 					} else {
@@ -311,7 +311,7 @@ class XMLComponent {
 			exprArgs.push( len == 1 && children[0].nodeType == PCData ? exprs[0] : macro $a{exprs} );
 		}
 		this.count++;
-		return macro @:pos(pos) nvd.Dt.make( $a{exprArgs} );
+		return macro @:pos(pos) @:privateAccess nvd.Dt.h( $a{exprArgs} );
 	}
 
 	// make sure to call tagToCtype(tagName, tyype, true) before this

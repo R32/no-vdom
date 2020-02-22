@@ -8,32 +8,34 @@ DOM Tools
 */
 @:native("dt") class Dt {
 	/**
-	 You don't need to use it which will be called automatically by macro
+	 it will be called automatically by macro
 	*/
 	@:pure
-	@:native("h")
-	public static function make(name: String, ?attr: haxe.DynamicAccess<String>, ?dyn: Dynamic):DOMElement {
+	static function h(name: String, ?attr: haxe.DynamicAccess<String>, ?sub: Dynamic):DOMElement {
 		var dom = document.createElement(name);
 		if (attr != null) {
 			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 		}
-		if (dyn != null) {
-			if (Std.is(dyn, Array)) {
-				var i = 0;
-				while (i < dyn.length) {
-					var v: Dynamic = dyn[i];
-					if (Std.is(v, String)) {
-						dom.appendChild(document.createTextNode(v));
-					} else { // if ( Std.is(v, js.html.Element) || Std.is(v, js.html.Text) ) {
-						dom.appendChild(v);
-					}
-					++ i;
-				}
-			} else {
-				dom.textContent = dyn;
-			}
-		}
+		if (sub)
+			hrec(dom, sub);
 		return dom;
+	}
+
+	static function hrec( box : js.html.DOMElement, sub : Dynamic ) {
+		//if (sub == null)
+		//	return;
+		if (Std.is(sub, Array)) {
+			var i = 0;
+			var len = sub.length;
+			while (i < len) {
+				hrec(box, sub[i]);
+				++ i;
+			}
+		} else if (Std.is(sub, String)) {
+			box.appendChild(document.createTextNode(sub));
+		} else {// if (Std.is(sub, js.html.DOMElement) || Std.is(sub, js.html.Text)) {
+			box.appendChild(sub);
+		}
 	}
 
 	public static function setAttr(dom: DOMElement, name: String, value: String): String {
