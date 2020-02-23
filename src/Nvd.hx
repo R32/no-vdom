@@ -1,14 +1,15 @@
 package;
 
 #if macro
+ using nvd.inner.Utils;
+import nvd.inner.Tags;
+import nvd.inner.CachedXML;
+import nvd.inner.XMLComponent;
+ using csss.Query;
+import csss.xml.Xml;
 import haxe.macro.Expr;
 import haxe.macro.Context;
-import haxe.macro.PositionTools;
-import nvd.Macros.exprString;
-import nvd.Macros.CachedXMLFile;
-import nvd.Macros.XMLComponent;
 #end
-
 class Nvd {
 	/*
 	simple HXX.
@@ -31,11 +32,10 @@ class Nvd {
 		document.body.appendChild(div);
 	```
 	*/
-	macro public static function HXX(markup: Expr) {
-		var comp = parseMarkup(markup, false);
-		comp.isHXX = true;
-		var expr = comp.parseXML();
-		var ctype = comp.getCType(comp.top.nodeName);
+	macro public static function HXX( markup : Expr ) {
+		var comp = XMLComponent.fromMarkup(markup, true);
+		var expr = comp.parse();
+		var ctype = comp.topComplexType();
 		return macro @:pos(markup.pos) (cast $expr: $ctype);
 	}
 #if macro
@@ -49,15 +49,15 @@ class Nvd {
 	}
 	```
 	*/
-	public static function buildQuerySelector(path: String, exprSelector: ExprOf<String>): Expr {
+	public static function buildQuerySelector( path : String, eCSS : ExprOf<String>) : Expr {
 		var pos = Context.currentPos();
-		var cache = CachedXMLFile.make(path, pos);
-		var selector = exprString(exprSelector);
-		var node = csss.Query.one(cache.xml, selector);
+		var cha = CachedXML.get(path, pos);
+		var css = eCSS.string();
+		var node = cha.xml.querySelector(css);
 		if (node == null)
-			nvd.Macros.fatalError('Could not find: "$selector" in $path', exprSelector.pos);
-		var ctype = XMLComponent.tagToCtype(node.nodeName, XMLComponent.checkIsSVG(node) , false);
-		return macro @:pos(pos) (js.Syntax.code("document.querySelector({0})", $exprSelector): $ctype);
+			fatalError('Could not find: "$css" in $path', eCSS.pos);
+		var ctype = Tags.ctype(node.nodeName, node.isSVG() , false);
+		return macro @:pos(pos) (js.Syntax.code("document.querySelector({0})", $eCSS): $ctype);
 	}
 
 	/*
@@ -76,39 +76,24 @@ class Nvd {
 	foo.|
 	```
 	*/
-	public static function build(efile: ExprOf<String>, selector: ExprOf<String>, ?defs, isSVG = false) {
-		var file = exprString(efile);
-		var css = exprString(selector);
-		var cache = CachedXMLFile.make(file, efile.pos);
-		var top = csss.Query.querySelector(cache.xml, css);
-		if (top == null) nvd.Macros.fatalError('Could not find: "$css" in $file', selector.pos);
-		var comp = new XMLComponent(file, 0, top, isSVG);
+	public static function build( ePath : ExprOf<String>, eCSS : ExprOf<String>, ?defs, isSVG = false ) {
+		var path = ePath.string();
+		var css = eCSS.string();
+		var cha = CachedXML.get(path, ePath.pos);
+		var top = cha.xml.querySelector(css);
+		if (top == null)
+			Nvd.fatalError('Could not find: "$css" in $path', eCSS.pos);
+		var comp = new XMLComponent(path, 0, top, isSVG, false);
 		return nvd.Macros.make(comp, defs);
 	}
 
-	public static function buildString(es: ExprOf<String>, ?defs, isSVG = false) {
-		return nvd.Macros.make(parseMarkup(es, isSVG), defs);
+	public static function buildString( e : Expr, ?defs) {
+		var comp = XMLComponent.fromMarkup(e, false);
+		return nvd.Macros.make(comp, defs);
 	}
 
-	static function parseMarkup(markup: Expr, isSVG: Bool): XMLComponent {
-		var pos = PositionTools.getInfos(markup.pos);
-		var txt = switch (markup.expr) {
-			case EConst(CString(s)):
-				pos.min += 1; // the 1 width of the quotes
-				s;
-			case EMeta({name: ":markup"}, {expr: EConst(CString(s))}):
-				s;
-			default:
-				nvd.Macros.fatalError("Expected String", markup.pos);
-		}
-		var top = try {
-			csss.xml.Xml.parse(txt).firstElement();
-		} catch (err: csss.xml.Parser.XmlParserException) {
-			pos.min += err.position;
-			pos.max = pos.min + 1;
-			nvd.Macros.fatalError(err.toString(), PositionTools.make(pos));
-		}
-		return new XMLComponent(pos.file, pos.min, top, isSVG);
-	}
+	static inline var ERR_PREFIX = "[no-vdom]: ";
+
+	static public function fatalError(msg, pos) : Dynamic return Context.fatalError(ERR_PREFIX + msg, pos);
 #end
 }
