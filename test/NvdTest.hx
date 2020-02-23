@@ -13,7 +13,7 @@ class NvdTest {
 				<label>text node: </label>
 				<input type="text" value="default value" />
 				<br />
-				<a href="javascript:void(0)" class="{ haha }" title={haha}>the {{link}} 1</a>
+				<a href="javascript:void(0)" class="{{ haha }}" title={{haha}}>the {{link}} 1</a>
 				<br />
 				<a id="hehe" class="aaa d-c" title="span span span" href="#">the {{link}} 2</a>
 				<br />
@@ -97,10 +97,10 @@ class NvdTest {
 
 // buildString
 @:build(Nvd.buildString(
-'<div class="hehe haha">
-	<label> some thing <input type="text" value= {hello} /></label>
+<div class="hehe haha">
+	<label> some thing <input type="text" value={{hello}} /></label>
 	<span></span>
-</div>', {
+</div>, {
 	value:   $("input").value
 })) abstract Tee(nvd.Comp) {
 }

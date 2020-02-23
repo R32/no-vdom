@@ -25,7 +25,7 @@ class XMLComponent {
 		isSVG = svg;
 		this.path = path;
 		this.offset = offset;
-		template = new HXX(useHXX);
+		template = new HXX(useHXX, this);
 	}
 
 	public function topComplexType() : ComplexType {
@@ -54,7 +54,7 @@ class XMLComponent {
 			var name  = a[i];
 			var value = a[i + 1];
 			var pos = this.position(xml.attrPos(name), name.length);
-			APUSH( {field: name, expr: template.parse(value, pos, false)} );
+			APUSH( {field: name, expr: template.parse(value, pos)} );
 			i += 2;
 		}
 		var pos = this.childPosition(xml);
@@ -69,7 +69,7 @@ class XMLComponent {
 				var text = child.nodeValue;
 				if (text == "")
 					continue;
-				PUSH( template.parse(text, this.position(child.nodePos, text.length), true) );
+				PUSH( template.parse(text, this.position(child.nodePos, text.length)) );
 			} else {
 				Nvd.fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", pos );
 			}

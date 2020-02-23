@@ -2,74 +2,78 @@ package nvd.inner;
 
 import haxe.macro.Expr;
 import haxe.macro.Context;
+import haxe.macro.PositionTools;
 
-private enum HXXState {
-	BEGIN;
-	BRACE_START;
+private enum State {
+	TEXT;
+	EXPR;
 }
 
 class HXX {
 
-	var ignore : Bool;
+	var skip : Bool;
+	var comp : XMLComponent;
 
-	public function new(hxx) {
-		ignore = !hxx;
+	public function new( isHXX : Bool, c : XMLComponent ) {
+		skip = !isHXX;
+		comp = c;
 	}
 
-	public function parse( s : String, pos : Position, evenInit : Bool ) : Expr {
+	public function parse( s : String, pos : Position ) {
 		var ret = {expr: EConst(CString(s)), pos: pos};
-		if (ignore)
+		if (skip)
 			return ret;
-		var wchar = evenInit ? 2 : 1;
-		var even = evenInit; // if evenInit == true then uses "{{" as delimiter, otherwise "{"
 		var col = [];
+		var pstart = PositionTools.getInfos(pos).min;
+		inline function phere(i, len) return comp.position(pstart + i, len);
+		inline function PUSH(s) col.push(s);
 		var i = 0;
-		var len = s.length;
+		var len = s.length - 1; // since }}  %} needs 2 char.
 		var start = 0;
-		var state = BEGIN;
+		var STATE = TEXT;
+		var width = 0;
 		while (i < len) {
 			var c = StringTools.fastCodeAt(s, i++);
-			switch(state) {
-			case BEGIN if (c == "{".code): // BEGIN
-				if (even) {
-					even = false;
+			switch (STATE) {
+			case TEXT if (c == "{".code):
+				c = StringTools.fastCodeAt(s, i++);
+				if (c != "{".code)
 					continue;
-				}
-				if (i > start + wchar) {
-					var sub = s.substr(start, i - wchar - start);
-					col.push({expr: EConst(CString(sub)), pos: pos});
+				width = i - 2 - start;
+				if (width > 0) {
+					var sub = s.substr(start, width);
+					PUSH({expr: EConst(CString(sub)), pos: phere(start, width)});
 				}
 				start = i;
-				state = BRACE_START;
-				even = evenInit; // reset for next
-			case BRACE_START if (c == "}".code):
-				if (even) {
-					even = false;
+				STATE = EXPR;
+			case EXPR if (c == "}".code):  // {{ expr }}
+				c = StringTools.fastCodeAt(s, i++);
+				if (c != "}".code)
 					continue;
-				}
-				if (i > start + wchar) {
-					var sub = StringTools.trim( s.substr(start, i - wchar - start) );
+				width = i - 2 - start;
+				if (width > 0) {
+					var sub = StringTools.trim(s.substr(start, width));
 					if (sub != "")
-						col.push( Context.parse(sub, pos) );
+						PUSH(Context.parse(sub, phere(start, width)));
 				}
 				start = i;
-				state = BEGIN;
-				even = evenInit; // reset for next
+				STATE = TEXT;
 			default:
 			}
 		}
-		if (state == BRACE_START)
+		if (STATE != TEXT)
 			Nvd.fatalError("Expected }", pos);
-		if (i > start) {
-			var sub = s.substr(start, i - start);
-			col.push({expr: EConst(CString(sub)), pos: pos});
-		}
-		if (col.length == 1) {
-			ret = col[0];
-		} else if (col.length > 1) {
+		width = len + 1 - start;
+		if (width > 0)
+			PUSH( {expr: EConst(CString( s.substr(start, width) )), pos: phere(start, width)} );
+		return switch(col.length) {
+		case 0:
+			null;
+		case 1:
+			col[0];
+		default:
 			var prev = col.shift();
-			ret = Lambda.fold(col, (item,prev)->{expr : EBinop(OpAdd, prev, item), pos : item.pos}, prev);
+			Lambda.fold(col, (item, prev)->{expr : EBinop(OpAdd, prev, item), pos : item.pos}, prev);
 		}
-		return ret;
 	}
 }

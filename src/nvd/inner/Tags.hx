@@ -37,7 +37,6 @@ class Tags {
 		return dom_property_access.get(property);
 	}
 
-	// tagToCType
 	public static function ctype( name : String, svg : Bool, access : Bool ): ComplexType {
 		if (!svg) name = name.toUpperCase();
 		var mod = toModule(name, svg);
@@ -59,7 +58,6 @@ class Tags {
 		return ct;
 	}
 
-	// tagToModule
 	public static function toModule(name: String, isSVG: Bool): String {
 		if (isSVG) {
 			var type = svgs.get(name);  // keep the original case
@@ -82,7 +80,6 @@ class Tags {
 		}
 	}
 
-	// extractFVar => loadfvar
 	static function loadFVar( out : Map<String, FCTAccess>, type : Type, stop = "js.html.Element" ) : Void {
 		switch (type) {
 		case TInst(r, _):

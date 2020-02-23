@@ -31,7 +31,7 @@ haxelib dev no-vdom no-vdom
 
 * utils:
 
-  Simple `HXX` for building simple Elements.
+  Simple `HXX` for building Elements.
 
   ```js
   var title = "hi there";
@@ -39,7 +39,7 @@ haxelib dev no-vdom no-vdom
   var fn = function(){ return "element span"; }
   var div = Nvd.HXX(
     <div>
-      <a class="btn" title="{ title }"> LL {{ content }} RR </a>
+      <a class="btn" title="{{ title }}"> LL {{ content }} RR </a>
       <br />
       <span title={title}>{{ fn() }}</span>
     </div>
