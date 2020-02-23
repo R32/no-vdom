@@ -81,28 +81,28 @@ class XMLComponent {
 		} else if (html.length > 0) {
 			args.push( macro null );
 		}
-		if (html.length > 0) {
-			if (children.length == 1 && children[0].nodeType == PCData) {
-				var text = html[0];
-				// hacks style.textContent for IE, and you should put something like
-				// HXX("<style>{{css}}<style>") in non-inline function with @:analyzer(no_const_propagation)
-				if (name.toUpperCase() == "STYLE") {
-					var ret = macro @:pos(pos) {
-						var css = $text;
-						var n = @:privateAccess nvd.Dt.h($a{args});
-						if ((cast n).styleSheet) {
-							(cast n).styleSheet.cssText = css;
-						} else {
-							n.textContent = css;
-						}
-						n;
+		switch(html.length) {
+		case 0:
+		case 1:
+			var one = html[0];
+			// hacks style.textContent for IE, and you should put something like
+			// HXX("<style>{{css}}<style>") in non-inline function with @:analyzer(no_const_propagation)
+			if (children[0].nodeType == PCData && name.toUpperCase() == "STYLE") {
+				var ret = macro @:pos(pos) {
+					var css = $one;
+					var n = @:privateAccess nvd.Dt.h($a{args});
+					if ((cast n).styleSheet) {
+						(cast n).styleSheet.cssText = css;
+					} else {
+						n.textContent = css;
 					}
-					return ret;
+					n;
 				}
-				args.push(text);
-			} else {
-				args.push(macro $a{html});
+				return ret;
 			}
+			args.push(one);
+		default:
+			args.push(macro $a{html});
 		}
 		return macro @:pos(pos) @:privateAccess nvd.Dt.h( $a{args} );
 	}
