@@ -41,7 +41,7 @@ haxelib dev no-vdom no-vdom
     <div>
       <a class="btn" title="{{ title }}"> LL {{ content }} RR </a>
       <br />
-      <span title={title}>{{ fn() }}</span>
+      <span title={{title}}>{{ fn() }}</span>
     </div>
   );
   document.body.appendChild(div);

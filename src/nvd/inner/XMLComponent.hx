@@ -71,7 +71,7 @@ class XMLComponent {
 					continue;
 				PUSH( template.parse(text, this.position(child.nodePos, text.length)) );
 			} else {
-				Nvd.fatalError("Don't put **Comment, CDATA or ProcessingInstruction** in the Qurying Path.", pos );
+				Nvd.fatalError("Comment/CDATA/ProcessingInstruction are not allowed here", pos);
 			}
 		}
 		var name = xml.nodeName;
