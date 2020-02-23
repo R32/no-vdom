@@ -26,7 +26,7 @@ class Demo {
 
 // tutorial tick
 @:build(Nvd.build("index.html", ".tick", {
-	ts: $("span").text
+	ts: $("span").textContent
 })) abstract Tick(nvd.Comp) {
 	public inline function run(timer) {
 		timer.run = function() {

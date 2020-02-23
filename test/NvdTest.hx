@@ -79,7 +79,7 @@ class NvdTest {
 
 @:build(Nvd.build("bin/index.html", "div.template-1", {
 	link:    $("a"),
-	text:    $("p").text, // text is custom property
+	text:    $("p").textContent, // text is custom property
 	title:   $("a").attr.title,
 	cls:     $("a").className,
 	x:       $(null).offsetLeft,

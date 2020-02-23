@@ -119,12 +119,7 @@ class Macros {
 					expr: switch (item.type) {
 					case Elem: macro return $edom;
 					case Attr: macro return $edom.getAttribute($v{ aname });
-					case Prop:
-						switch (aname) {
-						case "text": macro return nvd.Dt.getText($edom);
-						case "html": macro return $edom.innerHTML;
-						default:     macro return $edom.$aname;
-						}
+					case Prop: macro return $edom.$aname;
 					case Style: macro return $edom.style.$aname;  // return nvd.Dt.getCss($edom, $v{aname})???
 					}
 				}),
@@ -139,18 +134,8 @@ class Macros {
 					args: [{name: "v", type: item.ctype}],
 					ret: item.ctype,
 					expr: switch (item.type) {
-					case Attr: macro return nvd.Dt.setAttr($edom, $v{ aname }, v);
-					case Prop:
-						var expr = macro return $edom.$aname = v;
-						if (item.isCustom) {
-							switch (aname) {
-							case "text": macro return nvd.Dt.setText($edom, v);
-							case "html": macro return $edom.innerHTML = v;
-							default: expr;
-							}
-						} else {
-							expr;
-						}
+					case Attr: macro { $edom.setAttribute($v{ aname }, v);  return v; }
+					case Prop: macro return $edom.$aname = v;
 					case Style: macro return $edom.style.$aname = v;
 					default: throw "ERROR";
 					}

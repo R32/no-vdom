@@ -20,7 +20,6 @@ class Tags {
 
 	@:persistent static var ct_maps : Map<String,ComplexType>;                     // collections of complexType by tagname
 	@:persistent static var dom_property_access : Map<String,FCTAccess>;           // property_name => FCTAccess
-	@:persistent static var custom_props_access : Map<String,FCTAccess>;           // custom properties ony for HTML Element
 	@:persistent static var style_access: Map<String,FCTAccess>;                   // css => FCTAccess
 
 	@:persistent static var htmls : haxe.DynamicAccess<String>;                    // string => moudle name, no SVG elements.
@@ -136,10 +135,6 @@ class Tags {
 		ct_maps = new Map();
 		html_access_pool = new Map();
 		svg_access_pool = new Map();
-
-		custom_props_access = new Map();
-		custom_props_access.set("text", { ctype: macro :String, vacc: AccNormal });
-		custom_props_access.set("html", { ctype: macro :String, vacc: AccNormal });
 
 		dom_property_access = new Map();
 		loadFVar(dom_property_access, Context.getType("js.html.DOMElement"), "js.html.EventTarget");

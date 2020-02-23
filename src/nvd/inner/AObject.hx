@@ -44,15 +44,13 @@ class DFieldInfos {
 	public var ctype(default, null): ComplexType;  // the ctype of the attribute/property/style property name
 	public var readOnly(default, null): Bool;
 	public var keepCSS(default, null): Bool;       // keep css in output/runtime
-	public var isCustom(default, null): Bool;      // if defined by custom_props_access
-	public function new(xml, type, name, ctype, readOnly, keepCSS , isCustom = false) {
+	public function new(xml, type, name, ctype, readOnly, keepCSS) {
 		this.assoc = xml;
 		this.type = type;
 		this.name = name;
 		this.ctype = ctype;
 		this.readOnly = readOnly;
 		this.keepCSS = keepCSS;
-		this.isCustom = isCustom;
 	}
 }
 
@@ -108,7 +106,6 @@ class AObject {
 			var keepCSS = assoc.css != null && params.length == 2 && params[1].bool();
 			var access: FCTAccess;
 			var readOnly = false;
-			var isCustom = false;
 			switch(type) {
 			case Elem: // unreachble
 			case Attr:
@@ -116,13 +113,8 @@ class AObject {
 				readOnly = false;
 			case Prop:
 				access = Tags.access(assoc.xml.nodeName, property, comp.isSVG);
-				if (access == null) {
-					if (!comp.isSVG)
-						access = Tags.custom_props_access.get(property);
-					if (access == null)
-						Nvd.fatalError('${assoc.xml.nodeName} has no field "$property"', posfield(f.expr.pos, e.pos));
-					isCustom = true;
-				}
+				if (access == null)
+					Nvd.fatalError('${assoc.xml.nodeName} has no field "$property"', posfield(f.expr.pos, e.pos));
 				readOnly = !(access.vacc == AccNormal && simpleValid(assoc.xml, property));
 			case Style:
 				access = Tags.style_access.get(property);
@@ -130,7 +122,7 @@ class AObject {
 					Nvd.fatalError('js.html.CSSStyleDeclaration has no field "$property"', posfield(f.expr.pos, e.pos));
 				readOnly = access.vacc != AccNormal;
 			}
-			var info = new DFieldInfos(assoc, type, property, access.ctype, readOnly, keepCSS, isCustom);
+			var info = new DFieldInfos(assoc, type, property, access.ctype, readOnly, keepCSS);
 			bindings.set(f.field, info);
 
 		case ECall(e, params):
@@ -138,7 +130,7 @@ class AObject {
 			case EConst(CIdent("$")):
 				var assoc = this.getDOMAttr(params[0]);
 				var keepCSS = assoc.css != null && params.length == 2 && params[1].bool();
-				var info = new DFieldInfos(assoc, Elem, null, assoc.ctype, true, keepCSS, false);
+				var info = new DFieldInfos(assoc, Elem, null, assoc.ctype, true, keepCSS);
 				bindings.set(f.field, info);
 			case _:
 				Nvd.fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
@@ -148,7 +140,7 @@ class AObject {
 			// $(selector).attr["key"]
 			var assoc = this.getDOMAttr(params[0]);
 			var keepCSS = assoc.css != null && params.length == 2 && params[1].bool();
-			var info = new DFieldInfos(assoc, Attr, attr, macro :String, false, keepCSS, false);
+			var info = new DFieldInfos(assoc, Attr, attr, macro :String, false, keepCSS);
 			bindings.set(f.field, info);
 
 		default:
