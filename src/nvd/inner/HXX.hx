@@ -24,7 +24,7 @@ class HXX {
 		if (skip)
 			return ret;
 		var col = [];
-		var pstart = PositionTools.getInfos(pos).min;
+		var pstart = PositionTools.getInfos(pos).min - comp.offset;
 		inline function phere(i, len) return comp.position(pstart + i, len);
 		inline function PUSH(s) col.push(s);
 		var i = 0;
@@ -68,7 +68,7 @@ class HXX {
 			PUSH( {expr: EConst(CString( s.substr(start, width) )), pos: phere(start, width)} );
 		return switch(col.length) {
 		case 0:
-			null;
+			macro {};
 		case 1:
 			col[0];
 		default:
