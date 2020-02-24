@@ -60,7 +60,7 @@ class XMLComponent {
 		var pos = this.childPosition(xml);
 		// innerHTML
 		var html = [];
-		inline function PUSH(e) html.push(e);
+		inline function PUSH(e) if (e != null) html.push(e);
 		var children = @:privateAccess xml.children;
 		for (child in children) {
 			if (child.nodeType == Element) {

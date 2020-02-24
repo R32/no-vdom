@@ -39,7 +39,7 @@ class HXX {
 				if (c != "{".code)
 					continue;
 				width = i - 2 - start;
-				if (width > 0) {
+				if (width > 0 && !empty(s, start, width)) {
 					var sub = s.substr(start, width);
 					PUSH({expr: EConst(CString(sub)), pos: phere(start, width)});
 				}
@@ -50,10 +50,9 @@ class HXX {
 				if (c != "}".code)
 					continue;
 				width = i - 2 - start;
-				if (width > 0) {
-					var sub = s.substr(start, width).trim();
-					if (sub != "")
-						PUSH(Context.parse(sub, phere(start, width)));
+				if (width > 0 && !empty(s, start, width)) {
+					var sub = s.substr(start, width);
+					PUSH(Context.parse(sub, phere(start, width)));
 				}
 				start = i;
 				STATE = TEXT;
@@ -63,16 +62,28 @@ class HXX {
 		if (STATE != TEXT)
 			Nvd.fatalError("Expected }", pos);
 		width = len + 1 - start;
-		if (width > 0)
+		if (width > 0 && !empty(s, start, width))
 			PUSH( {expr: EConst(CString( s.substr(start, width) )), pos: phere(start, width)} );
 		return switch(col.length) {
 		case 0:
-			macro {};
+			null;
 		case 1:
 			col[0];
 		default:
 			var prev = col.shift();
 			Lambda.fold(col, (item, prev)->{expr : EBinop(OpAdd, prev, item), pos : item.pos}, prev);
 		}
+	}
+
+	function empty( s : String, i : Int, len : Int ) : Bool {
+		len += i;
+		if (len > s.length)
+			len = s.length;
+		while (i < len) {
+			var c = s.fastCodeAt(i++);
+			if ( !(c == " ".code || (c > 8 && c < 14)) )
+				return false;
+		}
+		return true;
 	}
 }
