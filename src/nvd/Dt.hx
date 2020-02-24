@@ -29,7 +29,7 @@ DOM Tools
 				hrec(box, sub[i], true);
 				++ i;
 			}
-		} else if (Std.is(sub, js.html.DOMElement) || Std.is(sub, js.html.Text)) {
+		} else if(!Std.is(sub, String) && (Std.is(sub, js.html.DOMElement) || Std.is(sub, js.html.Text))) {
 			box.appendChild(sub);
 		} else if (loop) {
 			box.appendChild(document.createTextNode(sub));
