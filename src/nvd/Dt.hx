@@ -17,24 +17,24 @@ DOM Tools
 			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 		}
 		if (sub)
-			hrec(dom, sub);
+			hrec(dom, sub, false);
 		return dom;
 	}
 
-	static function hrec( box : js.html.DOMElement, sub : Dynamic ) {
-		//if (sub == null)
-		//	return;
+	static function hrec( box : js.html.DOMElement, sub : Dynamic, loop : Bool ) {
 		if (Std.is(sub, Array)) {
 			var i = 0;
 			var len = sub.length;
 			while (i < len) {
-				hrec(box, sub[i]);
+				hrec(box, sub[i], true);
 				++ i;
 			}
-		} else if (Std.is(sub, String)) {
-			box.appendChild(document.createTextNode(sub));
-		} else {// if (Std.is(sub, js.html.DOMElement) || Std.is(sub, js.html.Text)) {
+		} else if (Std.is(sub, js.html.DOMElement) || Std.is(sub, js.html.Text)) {
 			box.appendChild(sub);
+		} else if (loop) {
+			box.appendChild(document.createTextNode(sub));
+		} else {
+			box.textContent = sub;
 		}
 	}
 
