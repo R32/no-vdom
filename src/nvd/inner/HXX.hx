@@ -70,8 +70,45 @@ class HXX {
 		case 1:
 			col[0];
 		default:
-			var prev = col.shift();
-			Lambda.fold(col, (item, prev)->{expr : EBinop(OpAdd, prev, item), pos : item.pos}, prev);
+			concat(col);
+		}
+	}
+
+	function concat( col : Array<Expr> ) {
+		var group = [];
+		var prev  = null;
+		for (e in col) {
+			switch (e.expr) {
+			case EConst(CIdent(s)) if (s.charCodeAt(0) == "$".code):
+				if (prev != null)
+					group.push(prev);
+				prev = null;
+				group.push(macro @:pos(e.pos) $i{s.substr(1, s.length - 1)});
+				continue;
+			case EMeta({name: "$"}, e):
+				if (prev != null)
+					group.push(prev);
+				prev = null;
+				group.push(e);
+				continue;
+			default:
+			}
+			if (prev != null) {
+				prev = {expr: EBinop(OpAdd, prev, e), pos : e.pos};
+			} else {
+				prev = e;
+			}
+		}
+		if (prev != null)
+			group.push(prev);
+		return switch(group.length) {
+		case 0:
+			null;
+		case 1:
+			group[0];
+		default:
+			var pos = Utils.punion(group[0].pos, group[group.length-1].pos);
+			macro @:pos(pos) $a{group};
 		}
 	}
 
