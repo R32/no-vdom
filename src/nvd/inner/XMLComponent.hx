@@ -25,7 +25,7 @@ class XMLComponent {
 		isSVG = svg;
 		this.path = path;
 		this.offset = offset;
-		template = new HXX(useHXX, this);
+		template = new HXX(useHXX);
 	}
 
 	public function topComplexType() : ComplexType {

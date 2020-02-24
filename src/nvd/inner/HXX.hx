@@ -1,5 +1,6 @@
 package nvd.inner;
 
+ using StringTools;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.PositionTools;
@@ -12,11 +13,9 @@ private enum State {
 class HXX {
 
 	var skip : Bool;
-	var comp : XMLComponent;
 
-	public function new( isHXX : Bool, c : XMLComponent ) {
+	public function new( isHXX : Bool) {
 		skip = !isHXX;
-		comp = c;
 	}
 
 	public function parse( s : String, pos : Position ) {
@@ -24,8 +23,8 @@ class HXX {
 		if (skip)
 			return ret;
 		var col = [];
-		var pstart = PositionTools.getInfos(pos).min - comp.offset;
-		inline function phere(i, len) return comp.position(pstart + i, len);
+		var pinfo = PositionTools.getInfos(pos);
+		inline function phere(i, len) return PositionTools.make({file: pinfo.file, min: pinfo.min + i, max: pinfo.min + i + len});
 		inline function PUSH(s) col.push(s);
 		var i = 0;
 		var len = s.length - 1; // since }}  %} needs 2 char.
@@ -33,10 +32,10 @@ class HXX {
 		var STATE = TEXT;
 		var width = 0;
 		while (i < len) {
-			var c = StringTools.fastCodeAt(s, i++);
+			var c = s.fastCodeAt(i++);
 			switch (STATE) {
 			case TEXT if (c == "{".code):
-				c = StringTools.fastCodeAt(s, i++);
+				c = s.fastCodeAt(i++);
 				if (c != "{".code)
 					continue;
 				width = i - 2 - start;
@@ -47,12 +46,12 @@ class HXX {
 				start = i;
 				STATE = EXPR;
 			case EXPR if (c == "}".code):  // {{ expr }}
-				c = StringTools.fastCodeAt(s, i++);
+				c = s.fastCodeAt(i++);
 				if (c != "}".code)
 					continue;
 				width = i - 2 - start;
 				if (width > 0) {
-					var sub = StringTools.trim(s.substr(start, width));
+					var sub = s.substr(start, width).trim();
 					if (sub != "")
 						PUSH(Context.parse(sub, phere(start, width)));
 				}
