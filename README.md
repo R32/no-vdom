@@ -5,18 +5,8 @@ A haxelib used for static(in compile time) HTML data building
 
 ## Installation
 
-git version:
-
 ```bash
-# Install dependence(only used in macro/compile time)
-git clone https://github.com/R32/css-selector.git css-selector --depth 3
-# haxelib dev libname folder
-haxelib dev csss css-selector
-
-# Clone this repo to local
-git clone https://github.com/R32/no-vdom.git no-vdom --depth 3
-# Set haxelib
-haxelib dev no-vdom no-vdom
+haxelib install no-vdom
 ```
 
 ## Feature
@@ -182,7 +172,8 @@ Demo.main();
 
 ## CHANGES
 
-* `x.x.x`:
+* `0.5.0.`:
+  - Code Refactor
   - Added Simple `HXX`
   - Added SVG elements support(Only for Query)
 * `0.4.0`: added new data binding syntax
