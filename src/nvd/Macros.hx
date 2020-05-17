@@ -46,13 +46,13 @@ class Macros {
 		}
 		var ct_top =  comp.topComplexType();
 		fields.push({
-			name: "d",
+			name: "dom",
 			access: [APublic],
 			pos: pos,
 			kind: FProp("get", "never", ct_top)
 		});
 		fields.push({
-			name: "get_d",
+			name: "get_dom",
 			access: [AInline, APrivate],
 			pos: pos,
 			meta: [{name: ":to", pos: pos}],
@@ -93,7 +93,7 @@ class Macros {
 			var item = aobj.bindings.get(k);
 			var aname = item.name;
 			var edom  = if (item.keepCSS && item.assoc.css != null && item.assoc.css != "") {
-				macro cast d.querySelector($v{item.assoc.css});
+				macro cast dom.querySelector($v{item.assoc.css});
 			} else {
 				item.assoc.path.length < 6
 				? htmlChildren(item.assoc.path, item.assoc.pos)
