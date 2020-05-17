@@ -105,7 +105,7 @@ class Macros {
 			};
 			fields.push({
 				name: k,
-				access: [APublic],
+				access: k.charCodeAt(0) == "_".code ? [APrivate] : [APublic],
 				kind: FProp("get", (item.readOnly ? "never": "set"), item.ctype),
 				pos: item.assoc.pos,
 			});
