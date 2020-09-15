@@ -76,7 +76,7 @@ class Macros {
 		}
 		if (!comp.isSVG && !reserve.exists("create")) {
 			var ecreate = comp.parse();
-			ecreate = {expr: ENew(cls_path, [ecreate]), pos: pos};
+			ecreate = {expr: ECast(ecreate, null), pos: pos};
 			fields.push({
 				name: "create",
 				access: [APublic, AInline, AStatic],
