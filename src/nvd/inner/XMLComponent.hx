@@ -105,7 +105,7 @@ class XMLComponent {
 			args.push(macro $a{html});
 		}
 		if (args.length == 1)
-			return macro @:pos(pos) js.Browser.document.createElement($e{ args[0] });
+			return macro @:pos(pos) js.Syntax.code("document.createElement({0})", $e{ args[0] });
 		return macro @:pos(pos) @:privateAccess nvd.Dt.h( $a{args} );
 	}
 
