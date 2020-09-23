@@ -157,7 +157,11 @@ class AObject {
 		case EConst(CIdent("null")) | EConst(CString("")):
 			xml = top;
 		case EConst(CString(s)):
-			xml = top.querySelector(s);
+			try {
+				xml = top.querySelector(s);
+			} catch (e) {
+				Nvd.fatalError(Std.string(e), selector.pos);
+			}
 			if (xml == null)
 				Nvd.fatalError('Could not find "$s" in ${top.toSimpleString()}', selector.pos);
 			css = s;
