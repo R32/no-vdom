@@ -12,11 +12,7 @@ import haxe.macro.Context;
 #end
 class Nvd {
 	/*
-	simple HXX.
-
-	Uses `{code}` in attribute-value, no spaces are allowed if there are no quotes.
-
-	Uses `{{code}}` in textContent
+	Uses `{{` `}}` as variable separator.
 
 	```hx
 		var title = "hi there";
@@ -24,9 +20,9 @@ class Nvd {
 		var fn = function(){ return "string"; }
 		var div = HXX(
 			<div>
-				<a class="btn" title="{ title }"> LL {{ content }} RR </a>
+				<a class="btn" title="{{ title }}"> LL {{ content }} RR </a>
 				<br />
-				<span title={title}>{{ fn() }}</span>
+				<span title={{title}}>{{ fn() }}</span>
 			</div>
 		);
 		document.body.appendChild(div);
