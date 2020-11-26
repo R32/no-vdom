@@ -22,14 +22,14 @@ DOM Tools
 	}
 
 	static function hrec( box : js.html.DOMElement, sub : Dynamic, loop : Bool ) {
-		if (Std.is(sub, Array)) {
+		if (sub is Array) {
 			var i = 0;
 			var len = sub.length;
 			while (i < len) {
 				hrec(box, sub[i], true);
 				++ i;
 			}
-		} else if(!Std.is(sub, String) && (Std.is(sub, js.html.DOMElement) || Std.is(sub, js.html.Text))) {
+		} else if(js.Syntax.typeof(sub) == "object") { // js.html.DOMElement or js.html.Text
 			box.appendChild(sub);
 		} else if (loop) {
 			box.appendChild(document.createTextNode(sub));
