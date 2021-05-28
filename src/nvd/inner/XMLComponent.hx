@@ -2,8 +2,7 @@ package nvd.inner;
 
 import csss.xml.Xml;
 import haxe.macro.Expr;
-import haxe.macro.PositionTools.make in pmake;
-import haxe.macro.PositionTools.getInfos in pInfos;
+import haxe.macro.PositionTools;
 
  using nvd.inner.Utils;
 import nvd.inner.HXX;
@@ -33,7 +32,7 @@ class XMLComponent {
 	}
 
 	public function position( i : Int, len : Int ) : Position {
-		return pmake({file: path, min: offset + i, max: offset + i + len});
+		return PositionTools.make({file: path, min: offset + i, max: offset + i + len});
 	}
 
 	public inline function childPosition( child : Xml ) : Position {
@@ -109,7 +108,7 @@ class XMLComponent {
 	}
 
 	public static function fromMarkup( e : Expr, isHXX : Bool ) : XMLComponent {
-		var pos = pInfos(e.pos);
+		var pos = PositionTools.getInfos(e.pos);
 		var txt = e.markup();
 		var top = txt.parseXML(e.pos).firstElement();
 		return new XMLComponent(pos.file, pos.min, top, top.isSVG(), isHXX);

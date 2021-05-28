@@ -1,10 +1,10 @@
 package nvd.inner;
 
  using haxe.macro.Tools;
+ using haxe.macro.PositionTools;
 import haxe.macro.Expr;
 import haxe.macro.Type;
-import haxe.macro.PositionTools.make in pmake;
-import haxe.macro.PositionTools.getInfos in pInfos;
+import haxe.macro.Context;
 
  using nvd.inner.Utils;
 import nvd.inner.Tags;
@@ -21,13 +21,12 @@ enum DFieldType {
 	Style;
 }
 
-@:structInit
 class DOMAttr {
-	public var xml(default, null) : Xml;                 // the DOMElement
-	public var ctype(default, null) : ComplexType;       // ComplexType by xml.tagName. If unrecognized then default is `:js.html.DOMElement`
-	public var path(default, null) : Array<Int>;         // relative to TOP
-	public var pos(default, null) : Position;            // css-selector position
-	public var css(default, null) : Null<String>;        // css-selector, if PATH then the value is null
+	public var xml(default, null) : Xml;             // the DOMElement
+	public var ctype(default, null) : ComplexType;   // ComplexType by xml.tagName. If unrecognized then default is `:js.html.DOMElement`
+	public var path(default, null) : Array<Int>;     // relative to TOP
+	public var pos(default, null) : Position;        // css-selector position
+	public var css(default, null) : Null<String>;    // css-selector, if PATH then the value is null
 	public function new(xml, ctype, path, pos, css) {
 		this.xml = xml;
 		this.ctype = ctype;
@@ -38,13 +37,13 @@ class DOMAttr {
 }
 
 class DFieldInfos {
-	public var assoc(default, null): DOMAttr;      // Associated DOMElement
-	public var type(default, null): DFieldType;
-	public var name(default, null): String;        // the attribute/property/style-property name
-	public var ctype(default, null): ComplexType;  // the ctype of the attribute/property/style property name
-	public var readOnly(default, null): Bool;
-	public var keepCSS(default, null): Bool;       // keep css in output/runtime
-	public function new(xml, type, name, ctype, readOnly, keepCSS) {
+	public var assoc(default, null) : DOMAttr;      // Associated DOMElement
+	public var type(default, null) : DFieldType;
+	public var name(default, null) : String;        // the attribute/property/style-property name
+	public var ctype(default, null) : ComplexType;  // the ctype of the attribute/property/style property name
+	public var readOnly(default, null) : Bool;
+	public var keepCSS(default, null) : Bool;       // keep css in output/runtime
+	public function new( xml, type, name, ctype, readOnly, keepCSS ) {
 		this.assoc = xml;
 		this.type = type;
 		this.name = name;
@@ -54,12 +53,21 @@ class DFieldInfos {
 	}
 }
 
+class AObjectError {
+	public var msg : String;
+	public var pos : Position;
+	public function new( msg, pos ) {
+		this.msg = msg;
+		this.pos = pos;
+	}
+}
+
 /**
 * parsed data from enum abstract.
 */
 class AObject {
 
-	var comp : XMLComponent;
+	public var comp(default, null) : XMLComponent;
 
 	public var bindings(default, null) : Map<String,DFieldInfos>;
 
@@ -70,23 +78,24 @@ class AObject {
 
 	public function parse( defs : Expr ) {
 		switch (defs.expr) {
-		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
+		case EBlock([]), EConst(CIdent("null")):    // if null or {} then skip it
 		case EObjectDecl(a):
 			for (f in a)
 				objectDeclField(f);
 		default:
-			Nvd.fatalError('Unsupported type for "defs"', defs.pos);
+			raise('Unsupported type for "defs"', defs.pos);
 		}
 	}
+
+	function raise( msg : String, pos : Position ) : Dynamic throw new AObjectError(msg, pos);
 
 	@:access(nvd.inner.Tags)
 	function objectDeclField( f : ObjectField ) {
 		if ( bindings.exists(f.field) )
-			Nvd.fatalError("Duplicate definition", f.expr.pos);
+			raise("Duplicate definition", f.expr.pos);
 		switch (f.expr.expr) {
-		case EField(e, property):
+		case EField(e, property):                   // $("css-selector").attr|style|xxx
 			var type = Prop;
-			// read params
 			var params = switch(e.expr) {
 			case ECall(macro $i{"$"}, params):
 				params;
@@ -96,10 +105,10 @@ class AObject {
 				else if (t == "style")
 					type = Style;
 				else
-					Nvd.fatalError('Unsupported EField: ' + t, posfield(e.pos, p));
+					raise('Unsupported EField: ' + t, posfield(e.pos, p));
 				params;
-			case _:
-				Nvd.fatalError('Unsupported: ' + f.expr.toString(), f.expr.pos);
+			default:
+				raise('Unsupported: ' + f.expr.toString(), f.expr.pos);
 			}
 			// read attr/prop/style
 			var assoc = this.getDOMAttr(params[0]);
@@ -114,38 +123,94 @@ class AObject {
 			case Prop:
 				access = Tags.access(assoc.xml.nodeName, property, comp.isSVG);
 				if (access == null)
-					Nvd.fatalError('${assoc.xml.nodeName} has no field "$property"', posfield(f.expr.pos, e.pos));
+					raise('${assoc.xml.nodeName} has no field "$property"', posfield(f.expr.pos, e.pos));
 				readOnly = !(access.vacc == AccNormal && simpleValid(assoc.xml, property));
 			case Style:
 				access = Tags.style_access.get(property);
 				if (access == null)
-					Nvd.fatalError('js.html.CSSStyleDeclaration has no field "$property"', posfield(f.expr.pos, e.pos));
+					raise('js.html.CSSStyleDeclaration has no field "$property"', posfield(f.expr.pos, e.pos));
 				readOnly = access.vacc != AccNormal;
 			}
 			var info = new DFieldInfos(assoc, type, property, access.ctype, readOnly, keepCSS);
 			bindings.set(f.field, info);
 
-		case ECall(e, params):
+		case ECall(e, params):                      // $("css-selector")
 			switch(e.expr) {
 			case EConst(CIdent("$")):
 				var assoc = this.getDOMAttr(params[0]);
-				var keepCSS = assoc.css != null && params.length == 2 && params[1].bool();
-				var info = new DFieldInfos(assoc, Elem, null, assoc.ctype, true, keepCSS);
+				var keepCSS = false;
+				var ctype = assoc.ctype;
+				var type : Null<Type> = null;
+				for (i in 1...params.length) {
+					var e = params[i];
+					switch(e.expr) {
+					case EConst(CIdent(s)):
+						if (s == "true" || s == "false") {
+							keepCSS = assoc.css != null && s == "true";
+							continue;
+						}
+						try {
+							var pack = Context.getLocalModule();
+							var full = StringTools.endsWith(pack, "." + s) ? pack : pack + "." + s;
+							type = Context.getType(full);
+						} catch( _ ) {
+							try type = Context.getType(s) catch (x) raise(Std.string(x), e.pos);
+						}
+					case EField(_):
+						type = haxe.macro.Context.getType(e.toString());
+					default:
+						raise('Unsupported : ' + e.toString(), e.pos);
+					}
+					compValid(assoc, type, e.pos);
+				}
+				if (type != null) {
+					ctype = type.toComplexType();
+				}
+				var info = new DFieldInfos(assoc, Elem, null, ctype, true, keepCSS);
 				bindings.set(f.field, info);
-			case _:
-				Nvd.fatalError('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
+			default:
+				raise('Unsupported EField: ' + f.expr.toString(), f.expr.pos);
 			}
 
 		case EArray({expr: EField({expr: ECall(macro $i{"$"}, params), pos: _}, "attr"), pos: _}, macro $v{(attr : String)}):
-			// $(selector).attr["key"]
+		// $("css-selector").attr["key"]
 			var assoc = this.getDOMAttr(params[0]);
 			var keepCSS = assoc.css != null && params.length == 2 && params[1].bool();
 			var info = new DFieldInfos(assoc, Attr, attr, macro :String, false, keepCSS);
 			bindings.set(f.field, info);
 
 		default:
-			Nvd.fatalError('Unsupported argument', f.expr.pos);
+			raise('Unsupported argument', f.expr.pos);
 		}
+	}
+
+	function compValid( da : DOMAttr, type : Type, pos : Position ) {
+		if (type == null)
+			return;
+		switch(type) {
+		case TAbstract(t, params):
+			var ac = t.get();
+			for (meta in ac.meta.get()) {
+				if (meta.name != ":build")
+					continue;
+				switch(meta.params[0].expr) {
+				case ECall(_, args) if (args.length >= 3):
+					var def = args[2];
+					var isSVG = args.length > 3 ? args[3].bool() : da.xml.isSVG();
+					var x = new XMLComponent(comp.path, comp.offset, da.xml, isSVG, false);
+					var o = new AObject(x);
+					try {
+						o.parse(def);
+					} catch ( e : AObjectError ) {
+						raise("(" + type.toString() + " is not allowed" + ") " + e.msg, pos);
+					}
+					return;
+				default:
+				}
+			}
+		default:
+		}
+		raise(type.toString() + " is not allowed", pos);
 	}
 
 	function getDOMAttr( selector : Expr ) : DOMAttr {
@@ -160,10 +225,10 @@ class AObject {
 			try {
 				xml = top.querySelector(s);
 			} catch (e) {
-				Nvd.fatalError(Std.string(e), selector.pos);
+				raise(Std.string(e), selector.pos);
 			}
 			if (xml == null)
-				Nvd.fatalError('Could not find "$s" in ${top.toSimpleString()}', selector.pos);
+				raise('Could not find "$s" in ${top.toSimpleString()}', selector.pos);
 			css = s;
 			path = relapath(xml);
 		case EArrayDecl(a):
@@ -171,18 +236,17 @@ class AObject {
 				switch (n.expr) {
 				case EConst(CInt(i)): path.push(Std.parseInt(i));
 				default:
-					Nvd.fatalError("Expected Int", n.pos);
+					raise("Expected Int", n.pos);
 				}
 			}
 			xml = lookup(top, path, 0);
 			if (xml == null)
-				Nvd.fatalError('Could not find "${"[" + path.join(",") + "]"}" in ${top.toSimpleString()}', selector.pos);
+				raise('Could not find "${"[" + path.join(",") + "]"}" in ${top.toSimpleString()}', selector.pos);
 		default:
-			Nvd.fatalError("Unsupported type", selector.pos);
+			raise("Unsupported type", selector.pos);
 		}
-		// it will be extract all fields of ComplexType to "html_access_pool"
 		var ctype = Tags.ctype(xml.nodeName, comp.isSVG, true);
-		return {xml: xml, ctype: ctype, path: path, pos: selector.pos, css: css};
+		return new DOMAttr(xml, ctype, path, selector.pos, css);
 	}
 
 	function lookup( xml : Xml, path : Array<Int>, next : Int ) : Xml {
@@ -195,7 +259,7 @@ class AObject {
 			if (child.nodeType == PCData)
 				continue; // don't do (i++)
 			if (child.nodeType != Element)
-				Nvd.fatalError("Comment/CDATA/ProcessingInstruction are not allowed here", comp.childPosition(child));
+				raise("Comment/CDATA/ProcessingInstruction are not allowed here", comp.childPosition(child));
 			if (i == p)
 				return hasNext ? lookup(child, path, next) : child;
 			i++;
@@ -220,7 +284,7 @@ class AObject {
 					}
 					ei++;
 				} else if (sib.nodeType != PCData) {
-					Nvd.fatalError("Comment/CDATA/ProcessingInstruction are not allowed here", comp.childPosition(sib));
+					raise("Comment/CDATA/ProcessingInstruction are not allowed here", comp.childPosition(sib));
 				}
 				i++;
 			}
@@ -238,10 +302,10 @@ class AObject {
 
 
 	// if a.b.c then get c.position
-	static function posfield(full, left) {
-		var pos = pInfos(full);
-		pos.min = pInfos(left).max + 1; // ".".length == 1;
-		return pmake(pos);
+	static function posfield( full : Position, left : Position ) {
+		var pos = full.getInfos();
+		pos.min = left.getInfos().max + 1; // ".".length == 1;
+		return pos.make();
 	}
 
 	static function simpleValid( xml : Xml, prop : String ): Bool @:privateAccess {
@@ -249,12 +313,6 @@ class AObject {
 		switch (prop) {
 		case "textContent", "innerText":
 			pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
-		case "text":
-			switch (xml.nodeName.toUpperCase()) {
-			case "INPUT", "OPTION", "SELECT": // see nvd.Dt.setText();
-			default:
-				pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
-			}
 		default:
 		}
 		return pass;

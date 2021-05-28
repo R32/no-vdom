@@ -42,7 +42,7 @@ class Tags {
 		var mod = toModule(name, svg);
 		var ct = ct_maps.get(mod);
 		if (ct == null) {
-			var type = try Context.getType(mod) catch(e:Dynamic) Context.getType("js.html.DOMElement");
+			var type = try Context.getType(mod) catch(e) Context.getType("js.html.DOMElement");
 			if (access) {
 				var pool = svg ? svg_access_pool : html_access_pool;
 				var fc = pool.get(name);

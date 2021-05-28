@@ -1,10 +1,9 @@
 package nvd.inner;
 
+ using haxe.macro.PositionTools;
 import csss.xml.Xml;
 import csss.xml.Parser;
 import haxe.macro.Expr;
-import haxe.macro.PositionTools.make in pmake;
-import haxe.macro.PositionTools.getInfos in pInfos;
 
 class Utils {
 	public static function string( e : Expr ) : String {
@@ -38,10 +37,10 @@ class Utils {
 		return try {
 			Xml.parse(txt);
 		} catch (e : XmlParserException) {
-			var pos = pInfos(pos);
+			var pos = pos.getInfos();
 			pos.min += e.position;
 			pos.max = pos.min + 1;
-			Nvd.fatalError(e.toString(), pmake(pos));
+			Nvd.fatalError(e.toString(), pos.make());
 		} catch (unk : Dynamic) {
 			Nvd.fatalError(Std.string(unk), pos);
 		}
@@ -59,9 +58,9 @@ class Utils {
 		return ret;
 	}
 
-	static public function punion( p1, p2 ) {
-		var pos = pInfos(p1);
-		pos.max = pInfos(p2).max; // ???do max(p1.max, p2.max),
-		return pmake(pos);
+	static public function punion( p1 : Position, p2 : Position ) {
+		var pos = p1.getInfos();
+		pos.max = p2.getInfos().max; // ???do max(p1.max, p2.max),
+		return pos.make();
 	}
 }

@@ -25,7 +25,13 @@ class NvdTest {
 				</ol>
 			</div>
 		);
-		document.body.appendChild(div);
+		var link = HXX(<a>here</a>);
+		var col = [];
+		for (i in 0...Std.random(20))
+			col.push(HXX(<li>n : {{ i }}</li>));
+
+		var ul = HXX(<ul> click {{ $link }} {{ $col }} </ul>);
+		document.body.appendChild(ul);
 	}
 
 	static function test_comp() {
@@ -79,7 +85,7 @@ class NvdTest {
 
 @:build(Nvd.build("bin/index.html", "div.template-1", {
 	link:    $("a"),
-	text:    $("p").textContent, // text is custom property
+	text:    $("p").innerText, // text is custom property
 	title:   $("a").attr.title,
 	cls:     $("a").className,
 	x:       $(null).offsetLeft,
@@ -91,7 +97,7 @@ class NvdTest {
 // svg element
 @:build(Nvd.build("bin/index.html", "#testSVG", {
 	rectOnclick:  $("rect").onclick,
-	text:         $("text").textContent,
+	text:         $("text").innerText,
 }, true)) abstract TestSVG(nvd.Comp) {
 }
 

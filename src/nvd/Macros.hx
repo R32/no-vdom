@@ -9,19 +9,20 @@ import haxe.macro.Context;
 import nvd.inner.XMLComponent;
 import nvd.inner.AObject;
 import nvd.inner.Tags;
+import Nvd.fatalError;
 
 @:allow(Nvd)
 class Macros {
 	static function make(comp: XMLComponent, defs: Expr): Array<Field> {
 		var pos = Context.currentPos();
-		var cls: ClassType = Context.getLocalClass().get();
+		var cls : ClassType = Context.getLocalClass().get();
 		var cls_path = switch (cls.kind) {
 		case KAbstractImpl(_.get() => c):
 			if (c.type.toString() != "nvd.Comp")
-				Nvd.fatalError('Only for abstract ${c.name}(nvd.Comp) ...', pos);
+				fatalError('Only for abstract ${c.name}(nvd.Comp) ...', pos);
 			{pack: c.pack, name: c.name};
 		default:
-			Nvd.fatalError('Only for abstract type', pos);
+			fatalError('Only for abstract type', pos);
 		}
 		var fields = Context.getBuildFields();
 		var reserve = new Map<String, Bool>();
@@ -29,7 +30,11 @@ class Macros {
 			reserve.set(f.name, true);
 
 		var aobj = new AObject(comp);
-		aobj.parse(defs);
+		try {
+			aobj.parse(defs);
+		} catch ( e : AObjectError ) {
+			fatalError(e.msg, e.pos);
+		}
 
 		if (!reserve.exists("_new")) { // abstract class constructor
 			var ct_dom = macro :js.html.DOMElement;
@@ -62,6 +67,7 @@ class Macros {
 				expr: macro return cast this
 			})
 		});
+		var ct_cls = TPath(cls_path);
 		if (!reserve.exists("ofSelector")) {
 			fields.push({
 				name: "ofSelector",
@@ -69,8 +75,8 @@ class Macros {
 				pos: pos,
 				kind: FFun({
 					args: [{name: "s", type: macro :String}],
-					ret: TPath(cls_path),
-					expr: macro return js.Syntax.code("document.querySelector({0})", s)
+					ret: ct_cls,
+					expr: macro return (js.Syntax.code("document.querySelector({0})", s) : $ct_cls)
 				})
 			});
 		}
@@ -83,7 +89,7 @@ class Macros {
 				pos: pos,
 				kind: FFun({
 					args: [],
-					ret: TPath(cls_path),
+					ret: ct_cls,
 					expr: macro return $ecreate
 				})
 			});
@@ -92,16 +98,16 @@ class Macros {
 		for (k in aobj.bindings.keys()) {
 			var item = aobj.bindings.get(k);
 			var aname = item.name;
-			var edom  = if (item.keepCSS && item.assoc.css != null && item.assoc.css != "") {
+			var edom  = if (item.keepCSS && item.assoc.css != null) {
 				macro cast dom.querySelector($v{item.assoc.css});
 			} else {
 				item.assoc.path.length < 6
 				? htmlChildren(item.assoc.path, item.assoc.pos)
 				: macro @:privateAccess cast this.lookup( $v{ item.assoc.path } );
 			}
-			var edom = {  // same as: (cast this.lookup(): SomeElement)
+			var edom = {
 				expr: ECheckType(edom, item.assoc.ctype),
-				pos : edom.pos
+				pos : item.assoc.pos
 			};
 			fields.push({
 				name: k,
@@ -117,6 +123,7 @@ class Macros {
 					args: [],
 					ret: item.ctype,
 					expr: switch (item.type) {
+					case Elem if(item.assoc.ctype != item.ctype): macro return cast $edom;
 					case Elem: macro return $edom;
 					case Attr: macro return $edom.getAttribute($v{ aname });
 					case Prop: macro return $edom.$aname;

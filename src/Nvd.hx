@@ -57,15 +57,19 @@ class Nvd {
 	}
 
 	/*
-	example:
+	Syntax: `refname : $(css-selector, ?keep-css)[.xxx]`
+
+	example: Only 4 types of references are supported. (Element|Property|Attribute|Style)
+
 	```hx
 	Nvd.build("file/to/index.html", ".template-1", {
-	    link:    $("a"),
-	    text:    $("p").textContent,
-	    title:   $("a").title,
-	    cls:     $("a").className,
-	    x:       $(null).style.offsetLeft
-	    display: $(null).style.display
+	    link    : $("a"),                   // Element
+	    text    : $("p").textContent,       // Property
+	    title   : $("a").title,             // Property
+	    atit    : $("a").attr.title,        // Attribute, OR .attr["title"]
+	    cls     : $("a").className,         // Property
+	    x       : $(null).style.offsetLeft  // Style
+	    display : $(null).style.display     // Style
 	}) abstract Foo(nvd.Comp) {}
 	// ....
 	var foo = new Foo();
