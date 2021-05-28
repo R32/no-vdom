@@ -1,17 +1,16 @@
 package nvd;
 
 import js.html.DOMElement;
-import js.Browser.document;
 
 /**
 DOM Tools
 */
 @:native("dt") class Dt {
 	/**
-	 it will be called automatically by macro
+	 It's used automatically by the macro
 	*/
 	@:pure
-	static function h(name: String, ?attr: haxe.DynamicAccess<String>, ?sub: Dynamic):DOMElement {
+	static function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
 		var dom = document.createElement(name);
 		if (attr != null) {
 			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
@@ -38,7 +37,7 @@ DOM Tools
 		}
 	}
 
-	public static function setAttr(dom: DOMElement, name: String, value: String): String {
+	public static function setAttr( dom : DOMElement, name : String, value : String ) : String {
 		if (value == null)
 			dom.removeAttribute(name);
 		else
@@ -46,7 +45,7 @@ DOM Tools
 		return value;
 	}
 
-	public static function getText(dom: DOMElement): String {
+	public static function getText( dom : DOMElement ) : String {
 		if (dom.nodeType == js.html.Node.ELEMENT_NODE) {
 			switch (dom.tagName) {
 				case "INPUT":
@@ -65,7 +64,7 @@ DOM Tools
 		return null;
 	}
 
-	public static function setText(dom: DOMElement, text: String): String {
+	public static function setText( dom : DOMElement, text : String) : String {
 		if (dom.nodeType == js.html.Node.ELEMENT_NODE) {
 			switch (dom.tagName) {
 			case "INPUT":
@@ -89,7 +88,7 @@ DOM Tools
 		return text;
 	}
 
-	public static function getCss(dom: DOMElement, name: String): String {
+	public static function getCss( dom : DOMElement, name : String ) : String {
 		if ((cast dom).currentStyle) {
 			return (cast dom).currentStyle[cast name];
 		} else {
@@ -97,13 +96,15 @@ DOM Tools
 		}
 	}
 
-	public static function setStyle(dom: DOMElement, styles: haxe.DynamicAccess<Any>): Void {
+	public static function setStyle( dom : DOMElement, styles : haxe.DynamicAccess<Any> ) : Void {
 		js.Syntax.code("for(var k in {0}) {1}[k] = {0}[k]", styles, dom.style);
 	}
 
-	public static function lookup(dom: DOMElement, path: Array<Int>): DOMElement {
+	public static function lookup( dom : DOMElement, path : Array<Int> ) : DOMElement {
 		for (p in path)
 			dom = dom.children[p];
 		return dom;
 	}
 }
+
+@:native("document") extern private var document : js.html.Document;

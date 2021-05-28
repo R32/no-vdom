@@ -68,7 +68,7 @@ class AObject {
 		bindings = new Map();
 	}
 
-	public function parse(defs : Expr) {
+	public function parse( defs : Expr ) {
 		switch (defs.expr) {
 		case EBlock([]), EConst(CIdent("null")): // if null or {} then skip it
 		case EObjectDecl(a):
@@ -80,7 +80,7 @@ class AObject {
 	}
 
 	@:access(nvd.inner.Tags)
-	function objectDeclField(f : ObjectField) {
+	function objectDeclField( f : ObjectField ) {
 		if ( bindings.exists(f.field) )
 			Nvd.fatalError("Duplicate definition", f.expr.pos);
 		switch (f.expr.expr) {
@@ -185,7 +185,7 @@ class AObject {
 		return {xml: xml, ctype: ctype, path: path, pos: selector.pos, css: css};
 	}
 
-	function lookup(xml : Xml, path : Array<Int>, next : Int) : Xml {
+	function lookup( xml : Xml, path : Array<Int>, next : Int ) : Xml {
 		if (path.length == 0)
 			return xml;
 		var i = 0;

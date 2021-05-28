@@ -41,20 +41,19 @@ class XMLComponent {
 	}
 
 	public function parse() : Expr {
-		return this.top != null ? parseInner(this.top) : macro {};
+		return parseInner(this.top);
 	}
 
 	function parseInner( xml : Xml ) : Expr {
 		// attributes
 		var attr = new Array<ObjectField>();
-		inline function APUSH(e) attr.push(e);
 		var a = @:privateAccess xml.attributeMap; // [(attr, value), ...]
 		var i = 0;
 		while (i < a.length) {
 			var name  = a[i];
 			var value = a[i + 1];
 			var pos = this.position(xml.attrPos(name), name.length);
-			APUSH( {field: name, expr: template.parse(value, pos)} );
+			attr.push( {field: name, expr: template.parse(value, pos)} );
 			i += 2;
 		}
 		var pos = this.childPosition(xml);
@@ -105,7 +104,7 @@ class XMLComponent {
 			args.push(macro $a{html});
 		}
 		if (args.length == 1)
-			return macro @:pos(pos) js.Syntax.code("document.createElement({0})", $e{ args[0] });
+			return macro @:pos(pos) (js.Syntax.code("document.createElement({0})", $e{ args[0] }) : js.html.DOMElement);
 		return macro @:pos(pos) @:privateAccess nvd.Dt.h( $a{args} );
 	}
 

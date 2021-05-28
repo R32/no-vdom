@@ -65,7 +65,7 @@ class Nvd {
 	    title:   $("a").title,
 	    cls:     $("a").className,
 	    x:       $(null).style.offsetLeft
-	    display: $(null).display
+	    display: $(null).style.display
 	}) abstract Foo(nvd.Comp) {}
 	// ....
 	var foo = new Foo();
@@ -78,7 +78,7 @@ class Nvd {
 		var cha = CachedXML.get(path, ePath.pos);
 		var top = cha.xml.querySelector(css);
 		if (top == null)
-			Nvd.fatalError('Could not find: "$css" in $path', eCSS.pos);
+			fatalError('Could not find: "$css" in $path', eCSS.pos);
 		var comp = new XMLComponent(path, 0, top, isSVG, false);
 		return nvd.Macros.make(comp, defs);
 	}

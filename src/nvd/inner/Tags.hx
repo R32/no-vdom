@@ -18,26 +18,26 @@ class FCTAccess {
 
 class Tags {
 
-	@:persistent static var ct_maps : Map<String,ComplexType>;                     // collections of complexType by tagname
-	@:persistent static var dom_property_access : Map<String,FCTAccess>;           // property_name => FCTAccess
-	@:persistent static var style_access: Map<String,FCTAccess>;                   // css => FCTAccess
+	@:persistent static var ct_maps          : Map<String,ComplexType>;            // tagname => complexType
+	@:persistent static var dom_field_access : Map<String,FCTAccess>;              // default field name => FCTAccess
+	@:persistent static var style_access     : Map<String,FCTAccess>;              // css name => FCTAccess
 
-	@:persistent static var htmls : haxe.DynamicAccess<String>;                    // string => moudle name, no SVG elements.
-	@:persistent static var svgs  : haxe.DynamicAccess<String>;                    // string => SVG moudle name
-	@:persistent static var html_access_pool : Map<String, Map<String,FCTAccess>>; // html tagName => [dom_property_access]
-	@:persistent static var svg_access_pool  : Map<String, Map<String,FCTAccess>>; //  svg tagName => [dom_property_access]
+	@:persistent static var htmls            : haxe.DynamicAccess<String>;         // html tagname => moudle name
+	@:persistent static var svgs             : haxe.DynamicAccess<String>;         //  svg tagname => moudle name
+	@:persistent static var html_access_pool : Map<String, Map<String,FCTAccess>>; // html tagName => [dom_field_access]
+	@:persistent static var  svg_access_pool : Map<String, Map<String,FCTAccess>>; //  svg tagName => [dom_field_access]
 
-	public static function access(tagName : String, property : String, isSVG : Bool): FCTAccess {
+	public static function access( tagName : String, property : String, isSVG : Bool ) : FCTAccess {
 		var map = isSVG ? svg_access_pool.get(tagName) : html_access_pool.get(tagName.toUpperCase());
 		if (map != null) {
 			var ret = map.get(property);
 			if (ret != null)
 				return ret;
 		}
-		return dom_property_access.get(property);
+		return dom_field_access.get(property);
 	}
 
-	public static function ctype( name : String, svg : Bool, access : Bool ): ComplexType {
+	public static function ctype( name : String, svg : Bool, access : Bool ) : ComplexType {
 		if (!svg) name = name.toUpperCase();
 		var mod = toModule(name, svg);
 		var ct = ct_maps.get(mod);
@@ -58,7 +58,7 @@ class Tags {
 		return ct;
 	}
 
-	public static function toModule(name: String, isSVG: Bool): String {
+	public static function toModule( name : String, isSVG : Bool ) : String {
 		if (isSVG) {
 			var type = svgs.get(name);  // keep the original case
 			if (type == null) {
@@ -133,8 +133,8 @@ class Tags {
 		html_access_pool = new Map();
 		svg_access_pool = new Map();
 
-		dom_property_access = new Map();
-		loadFVar(dom_property_access, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
+		dom_field_access = new Map();
+		loadFVar(dom_field_access, Context.getType("js.html.DOMElement"), "js.html.EventTarget");
 
 		style_access = new Map();
 		loadFVar(style_access, Context.getType("js.html.CSSStyleDeclaration"), "");

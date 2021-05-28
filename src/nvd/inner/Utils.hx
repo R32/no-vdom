@@ -59,7 +59,7 @@ class Utils {
 		return ret;
 	}
 
-	static public function punion(p1, p2) {
+	static public function punion( p1, p2 ) {
 		var pos = pInfos(p1);
 		pos.max = pInfos(p2).max; // ???do max(p1.max, p2.max),
 		return pmake(pos);
