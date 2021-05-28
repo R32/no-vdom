@@ -33,7 +33,7 @@ DOM Tools
 		} else if (loop) {
 			box.appendChild(document.createTextNode(sub));
 		} else {
-			box.textContent = sub;
+			box.innerText = sub;
 		}
 	}
 
@@ -56,7 +56,7 @@ DOM Tools
 					var select: js.html.SelectElement = cast dom;
 					return (cast select.options[select.selectedIndex]).text;
 				default:
-					return dom.textContent;
+					return dom.innerText;
 			}
 		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) {
 			return dom.nodeValue;
@@ -80,7 +80,7 @@ DOM Tools
 					}
 				}
 			default:
-				dom.textContent = text;
+				dom.innerText = text;
 			}
 		} else if (dom.nodeType != js.html.Node.DOCUMENT_NODE) { // #text, #comment
 			dom.nodeValue = text;

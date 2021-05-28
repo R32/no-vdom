@@ -16,7 +16,7 @@ class CachedXML {
 
 	function new() mtime = 0.;
 
-	function update(path: String) {
+	function update( path : String ) {
 		var stat = FileSystem.stat(path);
 		var cur = stat.mtime.getTime();
 		if (cur > mtime) {
@@ -25,19 +25,19 @@ class CachedXML {
 		}
 	}
 
-	public static function get(path, pos): CachedXML {
-		var cha = POOL.get(path);
-		if (cha == null) {
-			cha = new CachedXML();
-			POOL.set(path, cha);
+	public static function get( path, pos ): CachedXML {
+		var ret = POOL.get(path);
+		if (ret == null) {
+			ret = new CachedXML();
+			POOL.set(path, ret);
 		}
 		try
-			cha.update(path)
-		catch(e: XmlParserException)
+			ret.update(path)
+		catch( e : XmlParserException )
 			Nvd.fatalError(e.toString(), pmake({file: path, min: e.position, max: e.position + 1}))
-		catch(e : Dynamic)
+		catch( e : Dynamic )
 			Nvd.fatalError(Std.string(e), pos);
-		return cha;
+		return ret;
 	}
 
 	@:persistent static var POOL = new Map<String, CachedXML>();

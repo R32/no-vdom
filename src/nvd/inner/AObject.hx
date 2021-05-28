@@ -247,7 +247,7 @@ class AObject {
 	static function simpleValid( xml : Xml, prop : String ): Bool @:privateAccess {
 		var pass = true;
 		switch (prop) {
-		case "textContent":
+		case "textContent", "innerText":
 			pass = xml.children.length == 1 && xml.firstChild().nodeType == PCData;
 		case "text":
 			switch (xml.nodeName.toUpperCase()) {
