@@ -104,7 +104,7 @@ class NvdTest {
 // svg element
 @:build(Nvd.build("bin/index.html", "#testSVG", {
 	rectOnclick:  $("rect").onclick,
-	text:         $("text").innerText,
+	text:         $("text").textContent,
 }, true)) abstract TestSVG(nvd.Comp) {
 }
 
