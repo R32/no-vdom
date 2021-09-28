@@ -80,8 +80,15 @@ class NvdTest {
 	input:   $(".input-block"),
 	value:   $(".input-block", true).value,
 	title:   $([1, 0]).attr.title,  // the "[1, 0]" is rootElement.children[1].children[0]
+	sub:     $(".flex-table-item-primary", FooChild),
 })) abstract Foo(nvd.Comp) {
 }
+
+@:build(Nvd.build("bin/index.html", "div.flex-table-item-primary", {
+})) abstract FooChild(nvd.Comp) {
+}
+
+
 
 @:build(Nvd.build("bin/index.html", "div.template-1", {
 	link:    $("a"),
@@ -106,7 +113,5 @@ class NvdTest {
 <div class="hehe haha">
 	<label> some thing <input type="text" value={{hello}} /></label>
 	<span></span>
-</div>, {
-	value:   $("input").value
-})) abstract Tee(nvd.Comp) {
+</div>)) abstract Tee(nvd.Comp) {
 }

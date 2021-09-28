@@ -63,4 +63,19 @@ class Utils {
 		pos.max = p2.getInfos().max; // ???do max(p1.max, p2.max),
 		return pos.make();
 	}
+
+	// Simply compare the names of XML
+	static public function simplyCompare( x1 : Xml, x2 : Xml ) : Bool {
+		if (x1 == null || x2 == null || x1.nodeName != x2.nodeName)
+			return false;
+		var c1 = @:privateAccess x1.children.filter( x -> x.nodeType == Element );
+		var c2 = @:privateAccess x2.children.filter( x -> x.nodeType == Element );
+		if (c1.length != c2.length)
+			return false;
+		for (i in 0...c1.length) {
+			if (!simplyCompare(c1[i], c2[i]))
+				return false;
+		}
+		return true;
+	}
 }

@@ -161,7 +161,8 @@ class AObject {
 					default:
 						raise('Unsupported : ' + e.toString(), e.pos);
 					}
-					compValid(assoc, type, e.pos);
+					if (type != null)
+						compValid(assoc, type, e.pos);
 				}
 				if (type != null) {
 					ctype = type.toComplexType();
@@ -184,33 +185,31 @@ class AObject {
 		}
 	}
 
-	function compValid( da : DOMAttr, type : Type, pos : Position ) {
-		if (type == null)
-			return;
+	function compValid( rel : DOMAttr, type : Type, pos : Position ) {
 		switch(type) {
 		case TAbstract(t, params):
 			var ac = t.get();
 			for (meta in ac.meta.get()) {
 				if (meta.name != ":build")
 					continue;
+				var top : Xml = null;
 				switch(meta.params[0].expr) {
-				case ECall(_, args) if (args.length >= 3):
-					var def = args[2];
-					var isSVG = args.length > 3 ? args[3].bool() : da.xml.isSVG();
-					var x = new XMLComponent(comp.path, comp.offset, da.xml, isSVG, false);
-					var o = new AObject(x);
-					try {
-						o.parse(def);
-					} catch ( e : AObjectError ) {
-						raise("(" + type.toString() + " is not allowed" + ") " + e.msg, pos);
-					}
-					return;
+				case ECall(macro Nvd.build, args) if (args.length >= 2):
+					var path = args[0];
+					var css = args[1];
+					var cache = CachedXML.get(path.getValue(), path.pos); // NOTE: path.toString() is wrong
+					top = cache.xml.querySelector(css.getValue());
+				case ECall(macro Nvd.buildString, [xml, _]):
+					top = xml.markup().parseXML(xml.pos).firstElement();
 				default:
 				}
+				if (rel.xml.simplyCompare(top))
+					return;
 			}
 		default:
 		}
-		raise(type.toString() + " is not allowed", pos);
+		if (!Context.unify(rel.ctype.toType(), type))
+			raise(type.toString() + " is not allowed", pos);
 	}
 
 	function getDOMAttr( selector : Expr ) : DOMAttr {
