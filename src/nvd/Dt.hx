@@ -6,36 +6,6 @@ import js.html.DOMElement;
 DOM Tools
 */
 @:native("dt") class Dt {
-	/**
-	 It's used automatically by the macro
-	*/
-	@:pure
-	static function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
-		var dom = document.createElement(name);
-		if (attr != null) {
-			js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
-		}
-		if (sub)
-			hrec(dom, sub, false);
-		return dom;
-	}
-
-	static function hrec( box : js.html.DOMElement, sub : Dynamic, loop : Bool ) {
-		if (sub is Array) {
-			var i = 0;
-			var len = sub.length;
-			while (i < len) {
-				hrec(box, sub[i], true);
-				++ i;
-			}
-		} else if(js.Syntax.typeof(sub) == "object") { // js.html.DOMElement or js.html.Text
-			box.appendChild(sub);
-		} else if (loop) {
-			box.appendChild(document.createTextNode(sub));
-		} else {
-			box.innerText = sub;
-		}
-	}
 
 	public static function setAttr( dom : DOMElement, name : String, value : String ) : String {
 		if (value == null)
@@ -108,3 +78,33 @@ DOM Tools
 }
 
 @:native("document") extern private var document : js.html.Document;
+
+/**
+ It's used automatically by the macro
+*/
+@:native("__h") @:pure private function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
+	var dom = document.createElement(name);
+	if (attr != null) {
+		js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
+	}
+	if (sub)
+		hrec(dom, sub, false);
+	return dom;
+}
+
+@:native("__hrec") private function hrec( box : js.html.DOMElement, sub : Dynamic, loop : Bool ) {
+	if (sub is Array) {
+		var i = 0;
+		var len = sub.length;
+		while (i < len) {
+			hrec(box, sub[i], true);
+			++ i;
+		}
+	} else if(js.Syntax.typeof(sub) == "object") { // js.html.DOMElement or js.html.Text
+		box.appendChild(sub);
+	} else if (loop) {
+		box.appendChild(document.createTextNode(sub));
+	} else {
+		box.innerText = sub;
+	}
+}
