@@ -26,17 +26,17 @@ Uses `{{` `}}` as variable separator.
 ```haxe
 var title = "hi there";
 var content = "click here";
-var div = Nvd.HXX(<div><a title="{{ title }}"> LL {{ content }} RR </a></div>);
+var div = HXX(<div><a title="{{ title }}"> LL {{ content }} RR </a></div>);
 document.body.appendChild(div);
 ```
 
 Generated js:
 
 ```js
-window.document.body.appendChild(dt.h("div",null,dt.h("a",{ title : "hi there"}," LL " + "click here" + " RR ")));
+document.body.appendChild(__h("div",null,__h("a",{ title : "hi there"}," LL " + "click here" + " RR ")));
 ```
 
-If expr with prefix `$` inside `{{ }}` then that will be treated as `Element/TextNode`.
+If expr with prefix `$` inside `{{ }}` then that will be explicitly treated as `Element/Array<Element>`.
 
 ```haxe
 var link = HXX(<a>here</a>);
@@ -44,19 +44,20 @@ var col = [];
 for (i in 0...Std.random(20))
 	col.push(HXX(<li>n : {{ i }}</li>));
 
-var ul = HXX(<ul> click {{ $link }} {{ $col }} </ul>);
+var ul = HXX(<ul> click {{ $link }} {{ $col }} </ul>); // Explicitly mark variable as "Element"
+var ul = HXX(<ul> click {{ link }} {{ col }} </ul>);   // Auto-sensing type, powered by haxe macro
 document.body.appendChild(ul);
 ```
 
 Generated js:
 
 ```js
-var link = dt.h("a",null,"here");
+var link = __h("a",null,"here");
 var col = [];
 var _g = 0;
 var _g1 = Std.random(20);
-while(_g < _g1) col.push(dt.h("li",null,"n : " + _g++));
-window.document.body.appendChild(dt.h("ul",null,[" click ",link,col]));
+while(_g < _g1) col.push(__h("li",null,"n : " + _g++));
+document.body.appendChild(__h("ul",null,[" click ",link,col]));
 ```
 
 ### data binding

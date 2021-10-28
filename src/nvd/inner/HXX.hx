@@ -77,21 +77,33 @@ class HXX {
 	function concat( col : Array<Expr> ) {
 		var group = [];
 		var prev  = null;
+		function APPEND(e) {
+			if (prev != null) {
+				group.push(prev);
+				prev = null;
+			}
+			group.push(e);
+		}
 		for (e in col) {
 			switch (e.expr) {
 			case EConst(CIdent(s)) if (s.charCodeAt(0) == "$".code):
-				if (prev != null)
-					group.push(prev);
-				prev = null;
-				group.push(macro @:pos(e.pos) $i{s.substr(1, s.length - 1)});
+				APPEND(macro @:pos(e.pos) $i{s.substr(1, s.length - 1)});
 				continue;
-			case EMeta({name: "$"}, e):
-				if (prev != null)
-					group.push(prev);
-				prev = null;
-				group.push(e);
+			case EMeta({name: "$"}, e): // TODO: I forgot what this is?
+				APPEND(e);
 				continue;
 			default:
+				var add = false;
+				try {
+					var t = Context.follow(Context.typeof(e));
+					add = RElement.match( haxe.macro.TypeTools.toString(t) );
+				} catch (_) {
+					add = true;
+				}
+				if (add) {
+					APPEND(e);
+					continue;
+				}
 			}
 			if (prev != null) {
 				prev = {expr: EBinop(OpAdd, prev, e), pos : e.pos};
@@ -123,4 +135,6 @@ class HXX {
 		}
 		return true;
 	}
+
+	static var RElement = ~/^(js.html.|Array|Dynamic)/;
 }
