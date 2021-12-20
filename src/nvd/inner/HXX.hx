@@ -39,7 +39,7 @@ class HXX {
 				if (c != "{".code)
 					continue;
 				width = i - 2 - start;
-				if (width > 0 && !empty(s, start, width)) {
+				if (width > 0) {
 					var sub = s.substr(start, width);
 					PUSH({expr: EConst(CString(sub)), pos: phere(start, width)});
 				}
@@ -62,7 +62,7 @@ class HXX {
 		if (STATE != TEXT)
 			Nvd.fatalError("Expected }", pos);
 		width = len + 1 - start;
-		if (width > 0 && !empty(s, start, width))
+		if (width > 0)
 			PUSH( {expr: EConst(CString( s.substr(start, width) )), pos: phere(start, width)} );
 		return switch(col.length) {
 		case 0:
@@ -89,18 +89,15 @@ class HXX {
 			case EConst(CIdent(s)) if (s.charCodeAt(0) == "$".code):
 				APPEND(macro @:pos(e.pos) $i{s.substr(1, s.length - 1)});
 				continue;
-			case EMeta({name: "$"}, e): // TODO: I forgot what this is?
-				APPEND(e);
-				continue;
 			default:
-				var add = false;
+				var complex = false;
 				try {
 					var t = Context.follow(Context.typeof(e));
-					add = RElement.match( haxe.macro.TypeTools.toString(t) );
+					complex = RElement.match( haxe.macro.TypeTools.toString(t) );
 				} catch (_) {
-					add = true;
+					complex = true;
 				}
-				if (add) {
+				if (complex) {
 					APPEND(e);
 					continue;
 				}
