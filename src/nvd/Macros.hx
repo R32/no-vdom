@@ -75,7 +75,7 @@ class Macros {
 				kind: FFun({
 					args: [{name: "s", type: macro :String}],
 					ret: ct_cls,
-					expr: macro return (cast nvd.Dt.document.querySelector(s) : $ct_cls)
+					expr: macro return (cast nvd.Dt.Docs.querySelector(s) : $ct_cls)
 				})
 			});
 		}

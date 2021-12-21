@@ -12,6 +12,8 @@ class XMLComponent {
 
 	var template : HXX;
 
+	var htmlNode : haxe.macro.Type;
+
 	public var offset(default, null) : Int;
 
 	public var path(default, null) : String;
@@ -26,6 +28,7 @@ class XMLComponent {
 		this.path = path;
 		this.offset = offset;
 		template = new HXX(useHXX);
+		htmlNode = Context.getType("js.html.Node");
 	}
 
 	public function topComplexType() : ComplexType {
@@ -89,7 +92,7 @@ class XMLComponent {
 			if (children[0].nodeType == PCData && name.toUpperCase() == "STYLE") {
 				var ret = macro {
 					final _css : nvd.Dt.VarString = $one;
-					final _style = (cast nvd.Dt.document.createElement($e{ args[0] }) : $ctype);
+					final _style = (cast nvd.Dt.Docs.createElement($e{ args[0] }) : $ctype);
 					$b{ inlineAttributes(macro _style, attr) };
 					if ((_style : Dynamic).styleSheet) {
 						(_style : Dynamic).styleSheet.cssText = _css;
@@ -104,8 +107,8 @@ class XMLComponent {
 		default:
 			args.push(macro $a{html});
 		}
-		if (args.length == 1 && isTop)
-			return macro @:pos(pos) (cast nvd.Dt.document.createElement($e{ args[0] }) : $ctype);
+		if (args.length == 1)
+			return macro @:pos(pos) (cast nvd.Dt.Docs.createElement($e{ args[0] }) : $ctype);
 		var ret = macro @:pos(pos) (cast nvd.Dt.h( $a{args} ) : $ctype);
 		return isTop ? tryInline(ret, args, pos, ctype) : ret;
 	}
@@ -131,43 +134,47 @@ class XMLComponent {
 	static inline var TCNode    = 1;
 	static inline var TCComplex = 2;
 	static inline var TCNull    = 3;
-	function tryInline( origin : Expr, args : Array<Expr>, pos : Position, ctype : ComplexType ) : Expr {
-		var tmode = TCComplex;
-		var content = args[2];
-		if (content == null) {
-			tmode = TCNull;
-		} else {
-			switch(content.expr) {
-			case EConst(CIdent(_)):
-				try {
-					var t = Context.follow(Context.typeof(content));
-					if (Context.unify(t, Context.getType("js.html.Node"))) {
-						tmode = TCNode;
-					} else {
-						var ts = haxe.macro.TypeTools.toString(t);
-						switch(ts) {
-						case "String", "Int", "Float", "Boolean":
-							tmode = TCString;
-						default:
-						}
-					}
-				} catch (_) {
-				}
-			case EConst(_), EBinop(OpAdd, _, _):
-				tmode = TCString;
-			default:
-			}
+	function modeDetects( e : Expr ) {
+		if (e == null)
+			return TCNull;
+		switch(e.expr) {
+		case EConst(CIdent(_)):
+		case EConst(_), EBinop(OpAdd, _, _):
+			return TCString;
+		default:
+			return TCComplex; // Commenting out this line will allow non-variable expressions to be inlined
 		}
-		if (tmode == TCComplex)
-			return origin;
+		var mode = TCComplex;
+		var t : Null<haxe.macro.Type>;
+		try {
+			var t = Context.follow(Context.typeof(e));
+			if (Context.unify(t, this.htmlNode)) {
+				mode = TCNode;
+			} else {
+				var ts = haxe.macro.TypeTools.toString(t);
+				switch(ts) {
+				case "String", "Int", "Float", "Boolean":
+					mode = TCString;
+				default:
+				}
+			}
+		} catch(_) {
+		}
+		return mode;
+	}
+	function tryInline( origin : Expr, args : Array<Expr>, pos : Position, ctype : ComplexType ) : Expr {
 		var attr = args[1];
+		var content = args[2];
+		var mode = modeDetects(content);
+		if (mode == TCComplex)
+			return origin;
 		var battr = switch(attr.expr) {
 		case EObjectDecl(a):
 			inlineAttributes(macro node, a);
 		default:
 			[];
 		}
-		var content = switch(tmode) {
+		var content = switch(mode) {
 		case TCString:
 			macro node.innerText = $content;
 		case TCNode:
@@ -176,7 +183,7 @@ class XMLComponent {
 			macro {};
 		}
 		return macro @:pos(pos) {
-			final node = (cast nvd.Dt.document.createElement($e{ args[0] }) : $ctype);
+			final node = (cast nvd.Dt.Docs.createElement($e{ args[0] }) : $ctype);
 			$b{ battr };
 			$content;
 			node;

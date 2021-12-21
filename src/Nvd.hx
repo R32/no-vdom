@@ -53,7 +53,7 @@ class Nvd {
 		if (node == null)
 			fatalError('Could not find: "$css" in $path', eCSS.pos);
 		var ctype = Tags.ctype(node.nodeName, node.isSVG() , false);
-		return macro @:pos(pos) (js.Syntax.code("document.querySelector({0})", $eCSS): $ctype);
+		return macro @:pos(pos) (cast nvd.Dt.Docs.querySelector($eCSS): $ctype);
 	}
 
 	/*

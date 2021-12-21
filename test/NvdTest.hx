@@ -1,6 +1,6 @@
 package;
 
-import nvd.Dt.document;
+import js.Browser.document;
 import js.Browser.console;
 import Nvd.HXX;
 

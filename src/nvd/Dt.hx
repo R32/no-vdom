@@ -77,13 +77,11 @@ DOM Tools
 	}
 }
 
-@:native("document") extern var document : js.html.Document;
-
 /**
  It's used automatically by the macro
 */
 @:native("__h") @:pure function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
-	var dom = document.createElement(name);
+	var dom = Docs.createElement(name);
 	if (attr != null) {
 		js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 	}
@@ -103,7 +101,7 @@ DOM Tools
 	} else if(js.Syntax.typeof(sub) == "object") { // js.html.DOMElement or js.html.Text
 		box.appendChild(sub);
 	} else if (loop) {
-		box.appendChild(document.createTextNode(sub));
+		box.appendChild(Docs.createTextNode(sub));
 	} else {
 		box.innerText = sub;
 	}
@@ -114,4 +112,16 @@ DOM Tools
 */
 @:semantics(variable)
 extern abstract VarString(String) to String from String {
+}
+
+/**
+ Copied several "pure" functions for internal macros
+*/
+@:pure
+@:noCompletion
+@:native("document")
+extern class Docs {
+	static function createElement( localName : String ) : js.html.Element;
+	static function querySelector( data : String ) : js.html.Element;
+	static function createTextNode( data : String ) : js.html.Text;
 }
