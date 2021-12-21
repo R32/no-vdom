@@ -77,12 +77,12 @@ DOM Tools
 	}
 }
 
-@:native("document") extern private var document : js.html.Document;
+@:native("document") extern var document : js.html.Document;
 
 /**
  It's used automatically by the macro
 */
-@:native("__h") @:pure private function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
+@:native("__h") @:pure function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
 	var dom = document.createElement(name);
 	if (attr != null) {
 		js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
@@ -107,4 +107,11 @@ DOM Tools
 	} else {
 		box.innerText = sub;
 	}
+}
+
+/**
+ Used to prevent the optimizer to doing "const propagation" for "String"
+*/
+@:semantics(variable)
+extern abstract VarString(String) to String from String {
 }

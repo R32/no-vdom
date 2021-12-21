@@ -1,6 +1,6 @@
 package;
 
-import js.Browser.document;
+import nvd.Dt.document;
 import js.Browser.console;
 import Nvd.HXX;
 
@@ -25,13 +25,18 @@ class NvdTest {
 				</ol>
 			</div>
 		);
+		document.body.appendChild(div);
 		var link = HXX(<a>here</a>);
 		var col = [];
 		for (i in 0...Std.random(20))
 			col.push(HXX(<li>n : {{ i }}</li>));
 
-		var ul = HXX(<ul> click {{ $link }} {{ $col }} </ul>);
+		var ul = HXX(<ul> click {{ link }} {{ col }} </ul>);
 		document.body.appendChild(ul);
+
+		var css = "body { margin : 0; }";
+		var style = HXX( <style name="abc" class="xyz">{{ css }}</style> );
+		document.head.appendChild(style);
 	}
 
 	static function test_comp() {

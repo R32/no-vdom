@@ -31,8 +31,8 @@ class Nvd {
 	macro public static function HXX( markup : Expr ) {
 		var comp = XMLComponent.fromMarkup(markup, true);
 		var expr = comp.parse();
-		var ctype = comp.topComplexType();
-		return macro @:pos(markup.pos) (cast $expr: $ctype);
+		expr.pos = markup.pos;
+		return expr;
 	}
 #if macro
 	/**

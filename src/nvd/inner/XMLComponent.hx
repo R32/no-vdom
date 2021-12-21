@@ -2,6 +2,7 @@ package nvd.inner;
 
 import csss.xml.Xml;
 import haxe.macro.Expr;
+import haxe.macro.Context;
 import haxe.macro.PositionTools;
 
  using nvd.inner.Utils;
@@ -40,10 +41,10 @@ class XMLComponent {
 	}
 
 	public function parse() : Expr {
-		return parseInner(this.top);
+		return parseInner(this.top, true);
 	}
 
-	function parseInner( xml : Xml ) : Expr {
+	function parseInner( xml : Xml, isTop : Bool ) : Expr {
 		// attributes
 		var attr = new Array<ObjectField>();
 		var a = @:privateAccess xml.attributeMap; // [(attr, value), ...]
@@ -62,7 +63,7 @@ class XMLComponent {
 		var children = @:privateAccess xml.children;
 		for (child in children) {
 			if (child.nodeType == Element) {
-				PUSH( parseInner(child) );
+				PUSH( parseInner(child, false) );
 			} else if (child.nodeType == PCData) {
 				var text = child.nodeValue;
 				if (text == "")
@@ -72,6 +73,7 @@ class XMLComponent {
 				Nvd.fatalError("Comment/CDATA/ProcessingInstruction are not allowed here", pos);
 			}
 		}
+		var ctype = topComplexType();
 		var name = xml.nodeName;
 		var args = [macro $v{ name }];
 		if ( attr.length > 0 ) {
@@ -83,18 +85,18 @@ class XMLComponent {
 		case 0:
 		case 1:
 			var one = html[0];
-			// hacks style.textContent for IE, and you should put something like
-			// HXX("<style>{{css}}<style>") in non-inline function with @:analyzer(no_const_propagation)
+			// hacks style.textContent for IE
 			if (children[0].nodeType == PCData && name.toUpperCase() == "STYLE") {
-				var ret = macro @:pos(pos) {
-					var css = $one;
-					var n = @:privateAccess nvd.Dt.h($a{args});
-					if ((cast n).styleSheet) {
-						(cast n).styleSheet.cssText = css;
+				var ret = macro {
+					final _css : nvd.Dt.VarString = $one;
+					final _style = (cast nvd.Dt.document.createElement($e{ args[0] }) : $ctype);
+					$b{ inlineAttributes(macro _style, attr) };
+					if ((_style : Dynamic).styleSheet) {
+						(_style : Dynamic).styleSheet.cssText = _css;
 					} else {
-						n.textContent = css;
+						_style.textContent = _css;
 					}
-					n;
+					_style;
 				}
 				return ret;
 			}
@@ -102,9 +104,83 @@ class XMLComponent {
 		default:
 			args.push(macro $a{html});
 		}
-		if (args.length == 1)
-			return macro @:pos(pos) (js.Syntax.code("document.createElement({0})", $e{ args[0] }) : js.html.DOMElement);
-		return macro @:pos(pos) @:privateAccess nvd.Dt.h( $a{args} );
+		if (args.length == 1 && isTop)
+			return macro @:pos(pos) (cast nvd.Dt.document.createElement($e{ args[0] }) : $ctype);
+		var ret = macro @:pos(pos) (cast nvd.Dt.h( $a{args} ) : $ctype);
+		return isTop ? tryInline(ret, args, pos, ctype) : ret;
+	}
+
+	function inlineAttributes( node : Expr, attributes : Array<ObjectField> ) : Array<Expr> {
+		var ret = [];
+		for (attr in attributes) {
+			var e = switch(attr.field) {
+			case "id":
+				macro $node.id = $e{ attr.expr }
+			case "class":
+				macro $node.className = $e{ attr.expr }
+			case name:
+				macro $node.setAttribute($v{ name }, $e{ attr.expr });
+			}
+			e.pos = attr.expr.pos;
+			ret.push(e);
+		}
+		return ret;
+	}
+
+	static inline var TCString  = 0;
+	static inline var TCNode    = 1;
+	static inline var TCComplex = 2;
+	static inline var TCNull    = 3;
+	function tryInline( origin : Expr, args : Array<Expr>, pos : Position, ctype : ComplexType ) : Expr {
+		var tmode = TCComplex;
+		var content = args[2];
+		if (content == null) {
+			tmode = TCNull;
+		} else {
+			switch(content.expr) {
+			case EConst(CIdent(_)):
+				try {
+					var t = Context.follow(Context.typeof(content));
+					if (Context.unify(t, Context.getType("js.html.Node"))) {
+						tmode = TCNode;
+					} else {
+						var ts = haxe.macro.TypeTools.toString(t);
+						switch(ts) {
+						case "String", "Int", "Float", "Boolean":
+							tmode = TCString;
+						default:
+						}
+					}
+				} catch (_) {
+				}
+			case EConst(_), EBinop(OpAdd, _, _):
+				tmode = TCString;
+			default:
+			}
+		}
+		if (tmode == TCComplex)
+			return origin;
+		var attr = args[1];
+		var battr = switch(attr.expr) {
+		case EObjectDecl(a):
+			inlineAttributes(macro node, a);
+		default:
+			[];
+		}
+		var content = switch(tmode) {
+		case TCString:
+			macro node.innerText = $content;
+		case TCNode:
+			macro node.appendChild($content);
+		default:
+			macro {};
+		}
+		return macro @:pos(pos) {
+			final node = (cast nvd.Dt.document.createElement($e{ args[0] }) : $ctype);
+			$b{ battr };
+			$content;
+			node;
+		};
 	}
 
 	public static function fromMarkup( e : Expr, isHXX : Bool ) : XMLComponent {
@@ -114,3 +190,4 @@ class XMLComponent {
 		return new XMLComponent(pos.file, pos.min, top, top.isSVG(), isHXX);
 	}
 }
+

@@ -35,7 +35,6 @@ class Macros {
 		} catch ( e : AObjectError ) {
 			fatalError(e.msg, e.pos);
 		}
-
 		if (!reserve.exists("_new")) { // abstract class constructor
 			var ct_dom = macro :js.html.DOMElement;
 			fields.push({
@@ -76,7 +75,7 @@ class Macros {
 				kind: FFun({
 					args: [{name: "s", type: macro :String}],
 					ret: ct_cls,
-					expr: macro return (js.Syntax.code("document.querySelector({0})", s) : $ct_cls)
+					expr: macro return (cast nvd.Dt.document.querySelector(s) : $ct_cls)
 				})
 			});
 		}
