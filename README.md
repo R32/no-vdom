@@ -17,7 +17,25 @@ haxelib install no-vdom
 
 * **Zero Performance Loss**, Zero runtime dependency
 
-* IE8+ Support. *Note: Needs polyfills such as [textContext](http://eligrey.com/blog/post/textcontent-in-ie8)*
+* IE8+ Support.
+
+* [HXX] simple markup will be automatically inlined
+
+  ```haxe
+  var text = "hello world!";
+  var link = HXX( <a href="#" class="button primary"> says: {{ text }}</a>);
+  document.body.appendChild(link);
+  ```
+
+  output:
+
+  ```js
+  var node = document.createElement("a");
+  node.setAttribute("href","#");
+  node.className = "button primary";
+  node.innerText = " says: " + "hello world!";
+  document.body.appendChild(node);
+  ```
 
 ### HXX
 
@@ -75,7 +93,7 @@ document.body.appendChild(__h("ul",null,[" click ",link,col]));
     btn :   $("button"),
     text:   $("label").textContext,
     value:  $("input[type=button]").attr.value,
-    x:      $(null).style.left,  // if selector is null/"" then self(root DOMElement).
+    x:      $(null).style.left, // $(null) is self
     y:      $(null).style.top,
   }
 */
