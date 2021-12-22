@@ -85,12 +85,13 @@ DOM Tools
 	if (attr != null) {
 		js.Syntax.code("for(var k in {0}) {1}.setAttribute(k, {0}[k])", attr, dom);
 	}
-	if (sub)
-		hrec(dom, sub, false);
+	hrec(dom, sub, false);
 	return dom;
 }
 
 @:native("__hrec") private function hrec( box : js.html.DOMElement, sub : Dynamic, loop : Bool ) {
+	if (sub == null)
+		return;
 	if (sub is Array) {
 		var i = 0;
 		var len = sub.length;
