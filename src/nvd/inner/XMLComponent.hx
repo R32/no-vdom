@@ -12,8 +12,6 @@ class XMLComponent {
 
 	var template : HXX;
 
-	var htmlNode : haxe.macro.Type;
-
 	public var offset(default, null) : Int;
 
 	public var path(default, null) : String;
@@ -28,7 +26,6 @@ class XMLComponent {
 		this.path = path;
 		this.offset = offset;
 		template = new HXX(useHXX);
-		htmlNode = Context.getType("js.html.Node");
 	}
 
 	public function topComplexType() : ComplexType {
@@ -130,42 +127,10 @@ class XMLComponent {
 		return ret;
 	}
 
-	static inline var TCString  = 0;
-	static inline var TCNode    = 1;
-	static inline var TCComplex = 2;
-	static inline var TCNull    = 3;
-	function modeDetects( e : Expr ) {
-		if (e == null)
-			return TCNull;
-		switch(e.expr) {
-		case EConst(CIdent(_)):
-		case EConst(_), EBinop(OpAdd, _, _):
-			return TCString;
-		default:
-			return TCComplex; // Commenting out this line will allow non-variable expressions to be inlined
-		}
-		var mode = TCComplex;
-		var t : Null<haxe.macro.Type>;
-		try {
-			var t = Context.follow(Context.typeof(e));
-			if (Context.unify(t, this.htmlNode)) {
-				mode = TCNode;
-			} else {
-				var ts = haxe.macro.TypeTools.toString(t);
-				switch(ts) {
-				case "String", "Int", "Float", "Boolean":
-					mode = TCString;
-				default:
-				}
-			}
-		} catch(_) {
-		}
-		return mode;
-	}
 	function tryInline( origin : Expr, args : Array<Expr>, pos : Position, ctype : ComplexType ) : Expr {
 		var attr = args[1];
 		var content = args[2];
-		var mode = modeDetects(content);
+		var mode = HXX.WhatMode.detects(content);
 		if (mode == TCComplex)
 			return origin;
 		var battr = switch(attr.expr) {
@@ -179,7 +144,7 @@ class XMLComponent {
 			macro node.innerText = $content;
 		case TCNode:
 			macro node.appendChild($content);
-		default:
+		default: // TCNull
 			macro {};
 		}
 		return macro @:pos(pos) {

@@ -2,6 +2,7 @@ package nvd.inner;
 
  using StringTools;
 import haxe.macro.Expr;
+import haxe.macro.Type;
 import haxe.macro.Context;
 import haxe.macro.PositionTools;
 
@@ -49,8 +50,9 @@ class HXX {
 				c = s.fastCodeAt(i++);
 				if (c != "}".code)
 					continue;
-				width = i - 2 - start;
-				if (width > 0 && !empty(s, start, width)) {
+				start = leftTrim(s, start, i - 2 - start);  // i - 2 - old-start
+				width = rightTrim(s, start, i - 2 - start); // i - 2 - new-start
+				if (width > 0) {
 					var sub = s.substr(start, width);
 					PUSH(Context.parse(sub, phere(start, width)));
 				}
@@ -90,14 +92,8 @@ class HXX {
 				APPEND(macro @:pos(e.pos) $i{s.substr(1, s.length - 1)});
 				continue;
 			default:
-				var complex = false;
-				try {
-					var t = Context.follow(Context.typeof(e));
-					complex = RElement.match( haxe.macro.TypeTools.toString(t) );
-				} catch (_) {
-					complex = true;
-				}
-				if (complex) {
+				var mode = WhatMode.detects(e);
+				if (mode != TCString) {
 					APPEND(e);
 					continue;
 				}
@@ -121,17 +117,101 @@ class HXX {
 		}
 	}
 
-	function empty( s : String, i : Int, len : Int ) : Bool {
-		len += i;
-		if (len > s.length)
-			len = s.length;
-		while (i < len) {
-			var c = s.fastCodeAt(i++);
+	function leftTrim( s : String, start : Int, len : Int ) : Int {
+		var max = start + len;
+		while(start < max) {
+			var c = s.fastCodeAt(start);
 			if ( !(c == " ".code || (c > 8 && c < 14)) )
-				return false;
+				break;
+			start++;
 		}
-		return true;
+		return start;
 	}
 
-	static var RElement = ~/^(js.html.|Array|Dynamic)/;
+	function rightTrim( s : String, start : Int, len : Int ) : Int {
+		var i = start + len - 1;
+		while(i >= start) {
+			var c = s.fastCodeAt(i);
+			if ( !(c == " ".code || (c > 8 && c < 14)) )
+				break;
+			i--;
+		}
+		return i + 1 - start;
+	}
+}
+
+class WhatMode {
+
+	static var types : { node : Type, string : Type, simples : EReg };
+
+	static function isBlock( e : Expr ) {
+		return switch(e.expr) {
+		case EParenthesis(e), ECast(e, _), ECheckType(e, _), EMeta(_, e):
+			isBlock(e);
+		case EBlock(_), EIf(_), EFor(_), EWhile(_), ESwitch(_), ETry(_), ETernary(_):
+			true;
+		case ECall(macro nvd.Dt.h, _):
+			true;
+		default:
+			false;
+		}
+	}
+
+	static function isDynamic( t : Type, e : Expr ) {
+		return switch(t) {
+		case TDynamic(_):
+			true;
+		case TMono(_):
+			Nvd.fatalError("Unknown: " + haxe.macro.ExprTools.toString(e), e.pos);
+		default:
+			false;
+		}
+	}
+
+	public static function detects( e : Expr ) : ContentMode {
+		if (types == null) {
+			types = {
+				node : Context.getType("js.html.Node"),
+				string : Context.getType("String"),
+				simples : ~/^(Int|Float|Boolean)$/,
+			}
+		}
+		if (e == null)
+			return TCNull;
+		if (isBlock(e))
+			return TCComplex;
+		// fast detects
+		switch(e.expr) {
+		case EConst(CIdent("null")):
+			return TCString;
+		case EConst(CIdent(_)):
+		case EConst(_), EBinop(OpAdd, _, _):
+			return TCString;
+		default:
+		}
+		// do unify
+		var mode = TCComplex;
+		try {
+			var t = Context.follow(Context.typeof(e));
+			if (isDynamic(t, e)) {
+			} else if (Context.unify(t, types.node)) {
+				mode = TCNode;
+			} else if (Context.unify(t, types.string)) {
+				mode = TCString;
+			} else if (types.simples.match( haxe.macro.TypeTools.toString(t) )) {
+				mode = TCString;
+			} else {
+
+			}
+		} catch (_) {
+		}
+		return mode;
+	}
+}
+
+enum ContentMode {
+	TCString;
+	TCNode;
+	TCComplex;
+	TCNull;
 }
