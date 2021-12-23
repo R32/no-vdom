@@ -19,24 +19,6 @@ haxelib install no-vdom
 
 * IE8+ Support.
 
-* [HXX] simple markup will be automatically inlined
-
-  ```haxe
-  var text = "hello world!";
-  var link = HXX( <a href="#" class="button primary"> says: {{ text }}</a>);
-  document.body.appendChild(link);
-  ```
-
-  output:
-
-  ```js
-  var node = document.createElement("a");
-  node.setAttribute("href","#");
-  node.className = "button primary";
-  node.innerText = " says: " + "hello world!";
-  document.body.appendChild(node);
-  ```
-
 ### HXX
 
 Uses `{{` `}}` as variable separator.
@@ -101,17 +83,20 @@ Nvd.build(file: String, root: String, ?defs: Dynamic<Defines>);
 
 /**
 @selector: a css selector that used to specify a child DOMElement , if null it's represented as root DOMElement.
-@keep: Optional, if true that will keep the "css-selector" in output.
 */
-function $(selector:String, ?keep: Bool):AUTO;
+function $(selector:String) : AUTO;
 
 /**
 There are 4 types available:
-  $(...)              => DOMElement
-  $(...).XXX          => Property
-  $(...).attr.XXX     => Attribute,
-  $(...).attr["XXX"]  => Attribute,
-  $(...).style.XXX    => Style-Property
+  $(...)             ,  // DOMElement
+  $(...).XXX         ,  // Property
+  $(...).attr.XXX    ,  // Attribute,
+  $(...).attr["XXX"] ,  // Attribute,
+  $(...).style.XXX   ,  // Style-Property
+
+  // Extended syntax
+  @:keep $("selector").XXX   , // If "@:keep" then "selector" will be retained to output/runtime.
+  ($("selector") : OtherType), // Explicitly type casting to OtherType
 */
 ```
 
@@ -144,8 +129,7 @@ Component:
   name:     $("input[name=name]").value,
   email:    $("input[name=email]").value,
   remember: $("input[type=checkbox]").checked,
-  // Note: IE8 does not support the pseudo-selector ":checked"
-  herpderp: $("input[type=radio][name=herpderp]:checked", true).value,
+  herpderp: @:keep $("input[type=radio][name=herpderp]:checked").value,
 })) abstract LoginForm(nvd.Comp) {
   public inline function getData() {
     return {
@@ -191,8 +175,10 @@ Demo.main();
 
 ## CHANGES
 
+* `0.8.0` :
+  - Some improvements to make it simple.
+  - Added explicit type casting. e.g: `($("selector") : TabComponent)`
+  - [HXX] simple markup will be automatically inlined.
 * `0.5.0.`:
-  - Code Refactor
   - Added Simple `HXX`
   - Added SVG elements support(Only for Query)
-* `0.4.0`: added new data binding syntax

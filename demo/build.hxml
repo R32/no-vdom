@@ -2,6 +2,6 @@
 -cp src
 -main Demo
 -lib no-vdom
-# -D js-es=3
 -D analyzer-optimize
+--macro exclude('haxe.iterators.ArrayIterator')
 -js demo.js

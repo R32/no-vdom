@@ -41,7 +41,7 @@ class Demo {
 	name:     $("input[name=name]").value,
 	email:    $("input[name=email]").value,
 	remember: $("input[type=checkbox]").checked, // Note: IE8 does not support the pseudo-selector ":checked"
-	herpderp: $("input[type=radio][name=herpderp]:checked", true).value,
+	herpderp: @:keep $("input[type=radio][name=herpderp]:checked").value,
 })) abstract LoginForm(nvd.Comp) {
 	public inline function getData() {
 		return {
