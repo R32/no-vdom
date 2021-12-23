@@ -115,10 +115,10 @@ class FieldInfo { // Field
 		case EArray(e, {expr : EConst(CString(name)), pos : pos}):
 			paths.push({name : name, pos : pos});
 			loadrec(e);
-		case EParenthesis({expr: ECheckType(e, ct), pos: pos}):
-			loadrec(e); // load info first
-			if (!this.markup.unify(Context.resolveType(ct, pos)))
-				raise(ct.toString() + " should be " + this.markup.ctype.toString(), pos);
+		case ECheckType(e2, ct):
+			loadrec(e2); // load info first
+			if (!this.markup.unify(Context.resolveType(ct, e.pos)))
+				raise(ct.toString() + " should be " + this.markup.ctype.toString(), e.pos);
 			this.ctype = ct;
 		case EParenthesis(e):
 			loadrec(e);
