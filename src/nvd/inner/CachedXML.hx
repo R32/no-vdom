@@ -25,7 +25,8 @@ class CachedXML {
 		}
 	}
 
-	public static function get( path, pos ): CachedXML {
+	public static function get( pexpr : haxe.macro.Expr ): CachedXML {
+		var path = haxe.macro.ExprTools.getValue(pexpr);
 		var ret = POOL.get(path);
 		if (ret == null) {
 			ret = new CachedXML();
@@ -36,7 +37,7 @@ class CachedXML {
 		catch( e : XmlParserException )
 			Nvd.fatalError(e.toString(), pmake({file: path, min: e.position, max: e.position + 1}))
 		catch( e : Dynamic )
-			Nvd.fatalError(Std.string(e), pos);
+			Nvd.fatalError(Std.string(e), pexpr.pos);
 		return ret;
 	}
 

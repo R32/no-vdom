@@ -35,6 +35,7 @@ class Macros {
 		} catch ( e : AObjectError ) {
 			fatalError(e.msg, e.pos);
 		}
+
 		if (!reserve.exists("_new")) { // abstract class constructor
 			var ct_dom = macro :js.html.DOMElement;
 			fields.push({
@@ -97,39 +98,38 @@ class Macros {
 		for (k in aobj.bindings.keys()) {
 			var item = aobj.bindings.get(k);
 			var aname = item.name;
-			var edom  = if (item.keepCSS && item.assoc.css != null) {
-				macro cast dom.querySelector($v{item.assoc.css});
+			var edom  = if (item.keepCSS && item.markup.css != null) {
+				macro cast dom.querySelector($v{item.markup.css});
 			} else {
-				item.assoc.path.length < 6
-				? htmlChildren(item.assoc.path, item.assoc.pos)
-				: macro @:privateAccess cast this.lookup( $v{ item.assoc.path } );
+				item.markup.path.length < 6
+				? htmlChildren(item.markup.path, item.markup.pos)
+				: macro @:privateAccess cast this.lookup( $v{ item.markup.path } );
 			}
 			var edom = {
-				expr: ECheckType(edom, item.assoc.ctype),
-				pos : item.assoc.pos
+				expr: ECheckType(edom, item.markup.ctype),
+				pos : item.markup.pos
 			};
 			fields.push({
 				name: k,
 				access: k.charCodeAt(0) == "_".code ? [APrivate] : [APublic],
 				kind: FProp("get", (item.readOnly ? "never": "set"), item.ctype),
-				pos: item.assoc.pos,
+				pos: item.markup.pos,
 			});
-
 			fields.push({   // getter
 				name: "get_" + k,
 				access: [APrivate, AInline],
 				kind: FFun( {
 					args: [],
 					ret: item.ctype,
-					expr: switch (item.type) {
-					case Elem if(item.assoc.ctype != item.ctype): macro return cast $edom;
+					expr: switch (item.mode) {
+					case Elem if(item.markup.ctype != item.ctype): macro return cast $edom;
 					case Elem: macro return $edom;
 					case Attr: macro return $edom.getAttribute($v{ aname });
 					case Prop: macro return $edom.$aname;
 					case Style: macro return $edom.style.$aname;  // return nvd.Dt.getCss($edom, $v{aname})???
 					}
 				}),
-				pos: item.assoc.pos,
+				pos: item.markup.pos,
 			});
 			if (item.readOnly)
 				continue;
@@ -139,14 +139,14 @@ class Macros {
 				kind: FFun({
 					args: [{name: "v", type: item.ctype}],
 					ret: item.ctype,
-					expr: switch (item.type) {
+					expr: switch (item.mode) {
 					case Attr: macro { $edom.setAttribute($v{ aname }, v);  return v; }
 					case Prop: macro return $edom.$aname = v;
 					case Style: macro return $edom.style.$aname = v;
 					default: throw "ERROR";
 					}
 				}),
-				pos: item.assoc.pos,
+				pos: item.markup.pos,
 			});
 		}
 

@@ -50,7 +50,8 @@ class NvdTest {
 		trace(bar.x);
 		trace(bar.y);
 		trace(bar.text);
-		trace(bar.text_node.nodeValue);
+		bar.text = "abc";
+		trace(bar.textNode.nodeValue);
 
 		var testSVG = TestSVG.ofSelector("#testSVG");
 
@@ -83,9 +84,9 @@ class NvdTest {
 @:build(Nvd.build("bin/index.html", "div.flex-table", {
 	display: $(null).style.display,
 	input:   $(".input-block"),
-	value:   $(".input-block", true).value,
-	title:   $([1, 0]).attr.title,  // the "[1, 0]" is rootElement.children[1].children[0]
-	sub:     $(".flex-table-item-primary", FooChild),
+	value:   @:keep $(".input-block").value,
+	title:   $("[title]").attr["title"],
+	sub:     ($(".flex-table-item-primary") : FooChild),
 })) abstract Foo(nvd.Comp) {
 }
 
@@ -93,16 +94,14 @@ class NvdTest {
 })) abstract FooChild(nvd.Comp) {
 }
 
-
-
 @:build(Nvd.build("bin/index.html", "div.template-1", {
 	link:    $("a"),
 	text:    $("p").innerText, // text is custom property
 	title:   $("a").attr.title,
 	cls:     $("a").className,
-	x:       $(null).offsetLeft,
-	y:       $(null).offsetTop,
-	text_node: $("a").previousSibling,
+	x:       $("").offsetLeft,
+	y:       $("").offsetTop,
+	textNode: $("a").previousSibling,
 })) abstract Bar(nvd.Comp) {
 }
 

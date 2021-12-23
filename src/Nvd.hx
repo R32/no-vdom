@@ -45,15 +45,15 @@ class Nvd {
 	}
 	```
 	*/
-	public static function buildQuerySelector( path : String, eCSS : ExprOf<String>) : Expr {
+	public static function buildQuerySelector( path : String, sexpr : ExprOf<String>) : Expr {
 		var pos = Context.currentPos();
-		var cha = CachedXML.get(path, pos);
-		var css = eCSS.string();
+		var cha = CachedXML.get({expr: EConst(CString(path)), pos : pos});
+		var css = sexpr.string();
 		var node = cha.xml.querySelector(css);
 		if (node == null)
-			fatalError('Could not find: "$css" in $path', eCSS.pos);
+			fatalError('Could not find: "$css" in $path', sexpr.pos);
 		var ctype = Tags.ctype(node.nodeName, node.isSVG() , false);
-		return macro @:pos(pos) (cast nvd.Dt.Docs.querySelector($eCSS): $ctype);
+		return macro @:pos(pos) (cast nvd.Dt.Docs.querySelector($sexpr): $ctype);
 	}
 
 	/*
@@ -76,13 +76,13 @@ class Nvd {
 	foo.|
 	```
 	*/
-	public static function build( ePath : ExprOf<String>, eCSS : ExprOf<String>, ?defs, isSVG = false ) {
-		var path = ePath.string();
-		var css = eCSS.string();
-		var cha = CachedXML.get(path, ePath.pos);
+	public static function build( pexpr : ExprOf<String>, sexpr : ExprOf<String>, ?defs, isSVG = false ) {
+		var path = pexpr.string();
+		var css = sexpr.string();
+		var cha = CachedXML.get(pexpr);
 		var top = cha.xml.querySelector(css);
 		if (top == null)
-			fatalError('Could not find: "$css" in $path', eCSS.pos);
+			fatalError('Could not find: "$css" in $path', sexpr.pos);
 		var comp = new XMLComponent(path, 0, top, isSVG, false);
 		return nvd.Macros.make(comp, defs);
 	}

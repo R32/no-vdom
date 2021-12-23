@@ -22,45 +22,45 @@ class Utils {
 		default: false;
 		}
 	}
-	public static function markup( e : Expr ) : String {
-		return switch (e.expr) {
-		case EConst(CString(s)):
-			s;
-		case EMeta({name: ":markup"}, {expr: EConst(CString(s))}):
-			s;
-		default:
-			Nvd.fatalError("Expected String", e.pos);
-		}
-	}
 
-	public static function parseXML( txt : String, pos : Position ) : Xml {
+	public static function doParse( markup : Expr ) : Xml {
 		return try {
+			var txt = switch(markup.expr) {
+			case EConst(CString(s)): s;
+			case EMeta({name: ":markup"}, macro $v{ (s : String) }): s;
+			default:
+				throw "Expected String";
+			}
 			Xml.parse(txt);
 		} catch (e : XmlParserException) {
-			var pos = pos.getInfos();
+			var pos = markup.pos.getInfos();
 			pos.min += e.position;
 			pos.max = pos.min + 1;
 			Nvd.fatalError(e.toString(), pos.make());
-		} catch (unk : Dynamic) {
-			Nvd.fatalError(Std.string(unk), pos);
+		} catch (e) {
+			Nvd.fatalError(Std.string(e), markup.pos);
 		}
 	}
 
 	static public function isSVG( node : Xml ) : Bool {
-		var ret = false;
 		while(node != null) {
-			if (node.nodeName == "svg") {
-				ret = true;
-				break;
-			}
+			if (node.nodeName == "svg")
+				return true;
 			node = node.parent;
 		}
-		return ret;
+		return false;
 	}
 
 	static public function punion( p1 : Position, p2 : Position ) {
 		var pos = p1.getInfos();
 		pos.max = p2.getInfos().max; // ???do max(p1.max, p2.max),
+		return pos.make();
+	}
+
+	// if a.b.c then get c.position
+	static public function pfield( full : Position, left : Position ) {
+		var pos = full.getInfos();
+		pos.min = left.getInfos().max + 1; // ".".length == 1;
 		return pos.make();
 	}
 

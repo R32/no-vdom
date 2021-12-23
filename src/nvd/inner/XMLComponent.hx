@@ -36,8 +36,41 @@ class XMLComponent {
 		return PositionTools.make({file: path, min: offset + i, max: offset + i + len});
 	}
 
-	public inline function childPosition( child : Xml ) : Position {
+	public inline function getChildPosition( child : Xml ) : Position {
 		return position(child.nodePos, child.nodeName.length);
+	}
+
+	public function getChildPath( child : Xml ) : Array<Int> {
+		var ret = [];
+		while (child != top && child.parent != null) {
+			var i = 0;
+			var index = 0;
+			var found = false;
+			var siblings = @:privateAccess child.parent.children;
+			while (i < siblings.length) {
+				final elem = siblings[i];
+				if (elem.nodeType == Element) {
+					if (elem == child) {
+						found = true;
+						break;
+					}
+					index++;
+				} else if (elem.nodeType != PCData) {
+					Nvd.fatalError("Comment/CDATA/ProcessingInstruction are not allowed here", getChildPosition(elem));
+				}
+				i++;
+			}
+			if (!found)
+				break;
+			ret.push(index);
+			child = child.parent;
+		}
+		if (child == top) {
+			ret.reverse();
+		} else {
+			ret = null;
+		}
+		return ret;
 	}
 
 	public function parse() : Expr {
@@ -56,7 +89,7 @@ class XMLComponent {
 			attr.push( {field: name, expr: template.parse(value, pos)} );
 			i += 2;
 		}
-		var pos = this.childPosition(xml);
+		var pos = this.getChildPosition(xml);
 		// innerHTML
 		var html = [];
 		inline function PUSH(e) if (e != null) html.push(e);
@@ -155,10 +188,9 @@ class XMLComponent {
 		};
 	}
 
-	public static function fromMarkup( e : Expr, isHXX : Bool ) : XMLComponent {
-		var pos = PositionTools.getInfos(e.pos);
-		var txt = e.markup();
-		var top = txt.parseXML(e.pos).firstElement();
+	public static function fromMarkup( markup : Expr, isHXX : Bool ) : XMLComponent {
+		var pos = PositionTools.getInfos(markup.pos);
+		var top = markup.doParse().firstElement();
 		return new XMLComponent(pos.file, pos.min, top, top.isSVG(), isHXX);
 	}
 }
