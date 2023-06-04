@@ -94,7 +94,14 @@ class Macros {
 				})
 			});
 		}
-
+		if (comp.selector != null) {
+			fields.push({
+				name: "SELECTOR",
+				access: [APublic, AInline, AStatic],
+				pos: pos,
+				kind : FVar(null, macro $v{ comp.selector })
+			});
+		}
 		for (k in aobj.bindings.keys()) {
 			var item = aobj.bindings.get(k);
 			var aname = item.name;

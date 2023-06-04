@@ -20,11 +20,14 @@ class XMLComponent {
 
 	public var isSVG(default, null) : Bool;
 
-	public function new( path, offset, node, svg : Bool, useHXX : Bool ) {
+	public var selector : Null<String>;
+
+	public function new( path, offset, node, selector, svg : Bool, useHXX : Bool ) {
 		top = node;
 		isSVG = svg;
 		this.path = path;
 		this.offset = offset;
+		this.selector = selector;
 		template = new HXX(useHXX);
 	}
 
@@ -191,7 +194,7 @@ class XMLComponent {
 	public static function fromMarkup( markup : Expr, isHXX : Bool ) : XMLComponent {
 		var pos = PositionTools.getInfos(markup.pos);
 		var top = markup.doParse().firstElement();
-		return new XMLComponent(pos.file, pos.min, top, top.isSVG(), isHXX);
+		return new XMLComponent(pos.file, pos.min, top, null, top.isSVG(), isHXX);
 	}
 }
 

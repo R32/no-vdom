@@ -83,7 +83,7 @@ class Nvd {
 		var top = cha.xml.querySelector(css);
 		if (top == null)
 			fatalError('Could not find: "$css" in $path', sexpr.pos);
-		var comp = new XMLComponent(path, 0, top, isSVG, false);
+		var comp = new XMLComponent(path, 0, top, css, isSVG, false);
 		return nvd.Macros.make(comp, defs);
 	}
 
