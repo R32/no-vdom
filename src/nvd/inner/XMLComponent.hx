@@ -129,8 +129,10 @@ class XMLComponent {
 					$b{ inlineAttributes(macro _style, attr) };
 					if ((_style : Dynamic).styleSheet) {
 						(_style : Dynamic).styleSheet.cssText = _css;
-					} else {
+					} else if ((_style : Dynamic).textContent) {
 						_style.textContent = _css;
+					} else {
+						_style.innerText = _css;
 					}
 					_style;
 				}
