@@ -36,7 +36,8 @@ class Macros {
 			fatalError(e.msg, e.pos);
 		}
 
-		if (!reserve.exists("_new")) { // abstract class constructor
+		// haxe#12005 "_new" => "_hx_new" (abstract constructor)
+		if (!(reserve.exists("_new") || reserve.exists("_hx_new"))) {
 			var ct_dom = macro :js.html.DOMElement;
 			fields.push({
 				name: "new",

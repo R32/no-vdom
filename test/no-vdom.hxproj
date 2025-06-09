@@ -19,7 +19,7 @@
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="analyzer-optimize&#xA;old-error-format" />
+    <option directives="analyzer-optimize&#xA;message.reporting=classic&#xA;message.no-color" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
     <option mainClass="NvdTest" />

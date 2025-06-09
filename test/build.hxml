@@ -4,5 +4,6 @@
 -lib csss
 # -debug
 -D analyzer-optimize
--D old-error-format
+-D message.reporting=classic
+-D message.no-color
 -js bin/test.js

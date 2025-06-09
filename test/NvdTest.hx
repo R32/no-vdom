@@ -110,6 +110,9 @@ class NvdTest {
 	rectOnclick:  $("rect").onclick,
 	text:         $("text").textContent,
 }, true)) abstract TestSVG(nvd.Comp) {
+	public function new( dom : js.html.DOMElement ) {
+		this = cast dom;
+	}
 }
 
 // buildString
