@@ -142,7 +142,11 @@ class HXX {
 
 class WhatMode {
 
-	static var types : { node : Type, string : Type, simples : EReg };
+	static var types = {
+		node : Context.getType("js.html.Node"),
+		string : Context.getType("String"),
+		simples : ~/^(Int|Float|Boolean)$/,
+	};
 
 	static function isBlock( e : Expr ) {
 		return switch(e.expr) {
@@ -169,13 +173,6 @@ class WhatMode {
 	}
 
 	public static function detects( e : Expr ) : ContentMode {
-		if (types == null) {
-			types = {
-				node : Context.getType("js.html.Node"),
-				string : Context.getType("String"),
-				simples : ~/^(Int|Float|Boolean)$/,
-			}
-		}
 		if (e == null)
 			return TCNull;
 		if (isBlock(e))
