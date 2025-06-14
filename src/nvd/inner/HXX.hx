@@ -17,6 +17,7 @@ class HXX {
 
 	public function new( isHXX : Bool) {
 		skip = !isHXX;
+		WhatMode.init();
 	}
 
 	public function parse( s : String, pos : Position ) {
@@ -142,11 +143,15 @@ class HXX {
 
 class WhatMode {
 
-	static var types = {
-		node : Context.getType("js.html.Node"),
-		string : Context.getType("String"),
-		simples : ~/^(Int|Float|Boolean)$/,
-	};
+	static var types : { node : Type, string : Type, simples : EReg };
+
+	public static function init() {
+		types = {
+			node : Context.getType("js.html.Node"),
+			string : Context.getType("String"),
+			simples : ~/^(Int|Float|Boolean)$/,
+		}
+	}
 
 	static function isBlock( e : Expr ) {
 		return switch(e.expr) {
