@@ -109,7 +109,7 @@ class Macros {
 			var edom  = if (item.keepCSS && item.markup.css != null) {
 				macro cast dom.querySelector($v{item.markup.css});
 			} else {
-				item.markup.path.length < 6
+				item.markup.path.length < 2
 				? htmlChildren(item.markup.path, item.markup.pos)
 				: macro @:privateAccess cast this.lookup( $v{ item.markup.path } );
 			}
@@ -165,7 +165,7 @@ class Macros {
 	}
 
 	// [1,0,3] => this.children[1].children[0].children[3]
-	static function htmlChildren(a: Array<Int>, pos) {
+	static function htmlChildren( a : Array<Int>, pos ) {
 		var thiz = macro @:pos(pos) cast this;
 		return a.length > 0
 		? Lambda.fold(a, (item, prev)-> macro @:pos(pos) (cast $prev).children[$v{item}], thiz)

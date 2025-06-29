@@ -69,17 +69,27 @@ DOM Tools
 	public static function setStyle( dom : DOMElement, styles : haxe.DynamicAccess<Any> ) : Void {
 		js.Syntax.code("for(var k in {0}) {1}[k] = {0}[k]", styles, dom.style);
 	}
-
-	public static function lookup( dom : DOMElement, path : Array<Int> ) : DOMElement {
-		for (p in path)
-			dom = dom.children[p];
-		return dom;
-	}
 }
 
-/**
- It's used automatically by the macro
-*/
+/*
+ * lookup(elem, [1, 2, 3]) => elem.children[1].children[2].children[3]
+ */
+@:native("__hcdr") function lookup( node : DOMElement, path : Array<Int> ) : DOMElement {
+	for (p in path) {
+		node = cast node.firstChild;
+		var i = 0;
+		while ( (node : Dynamic) ) {
+			if (node.nodeType == js.html.Node.ELEMENT_NODE && p == i++)
+				break;
+			node = cast node.nextSibling;
+		}
+	}
+	return node;
+}
+
+/*
+ * It's used automatically by the macro
+ */
 @:native("__h") @:pure function h( name : String, ?attr : haxe.DynamicAccess<String>, ?sub : Dynamic ) : DOMElement {
 	var dom = Docs.createElement(name);
 	if (attr != null) {
@@ -108,16 +118,16 @@ DOM Tools
 	}
 }
 
-/**
- Used to prevent the optimizer to doing "const propagation" for "String"
-*/
+/*
+ * Used to prevent the optimizer to doing "const propagation" for "String"
+ */
 @:semantics(variable)
 extern abstract VarString(String) to String from String {
 }
 
-/**
- Copied several "pure" functions for internal macros
-*/
+/*
+ * Copied several "pure" functions for internal macros
+ */
 @:pure
 @:noCompletion
 @:native("document")

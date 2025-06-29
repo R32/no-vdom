@@ -126,7 +126,7 @@ class XMLComponent {
 				var ret = macro {
 					final _css : nvd.Dt.VarString = $one;
 					final _style = (cast nvd.Dt.Docs.createElement($e{ args[0] }) : $ctype);
-					$b{ inlineAttributes(macro _style, attr) };
+					$b{ expandAttributes(macro _style, attr) };
 					if ((_style : Dynamic).styleSheet) {
 						(_style : Dynamic).styleSheet.cssText = _css;
 					} else if ((_style : Dynamic).textContent) {
@@ -145,19 +145,23 @@ class XMLComponent {
 		if (args.length == 1)
 			return macro @:pos(pos) (cast nvd.Dt.Docs.createElement($e{ args[0] }) : $ctype);
 		var ret = macro @:pos(pos) (cast nvd.Dt.h( $a{args} ) : $ctype);
-		return isTop ? tryInline(ret, args, pos, ctype) : ret;
+		return isTop ? tryExpand(ret, args, pos, ctype) : ret;
 	}
 
-	function inlineAttributes( node : Expr, attributes : Array<ObjectField> ) : Array<Expr> {
+	function expandAttributes( node : Expr, attributes : Array<ObjectField> ) : Array<Expr> {
 		var ret = [];
 		for (attr in attributes) {
-			var e = switch(attr.field) {
-			case "id":
-				macro $node.id = $e{ attr.expr }
+			var k = attr.field;
+			var s = attr.expr;
+			var e = switch(k) {
+			case "id", "value", "name", "type", "src", "href", "title":
+				macro $node.$k = $s;
 			case "class":
-				macro $node.className = $e{ attr.expr }
-			case name:
-				macro $node.setAttribute($v{ name }, $e{ attr.expr });
+				macro $node.className = $s;
+			case "style":
+				macro $node.style.cssText = $s;
+			default:
+				macro $node.setAttribute($v{ k }, $s);
 			}
 			e.pos = attr.expr.pos;
 			ret.push(e);
@@ -165,7 +169,7 @@ class XMLComponent {
 		return ret;
 	}
 
-	function tryInline( origin : Expr, args : Array<Expr>, pos : Position, ctype : ComplexType ) : Expr {
+	function tryExpand( origin : Expr, args : Array<Expr>, pos : Position, ctype : ComplexType ) : Expr {
 		var attr = args[1];
 		var content = args[2];
 		var mode = HXX.WhatMode.detects(content);
@@ -173,7 +177,7 @@ class XMLComponent {
 			return origin;
 		var battr = switch(attr.expr) {
 		case EObjectDecl(a):
-			inlineAttributes(macro node, a);
+			expandAttributes(macro node, a);
 		default:
 			[];
 		}
@@ -186,7 +190,7 @@ class XMLComponent {
 			macro {};
 		}
 		return macro @:pos(pos) {
-			final node = (cast nvd.Dt.Docs.createElement($e{ args[0] }) : $ctype);
+			final node : $ctype = cast nvd.Dt.Docs.createElement($e{ args[0] });
 			$b{ battr };
 			$content;
 			node;
