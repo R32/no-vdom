@@ -5,7 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>test</title>
   <style>
-  div.red {color: #f00;}
+  div.red, [selected] {color: #f00;}
   svg{ border: 1px solid #ddd; margin: 8px 0;}
   </style>
 </head>
@@ -30,6 +30,12 @@ hello world
   <p> amet consectetuer <a href="#" title="Greeting">hi</a>
   </p>
 </div>
+<div class="depth">
+	<div><p><span>p1 1</span> <span>p1 2</span> <span>p1 3</span></p></div>
+	<div><p><span>p2 1</span> <span>p2 2</span> <span>p2 3</span></p></div>
+	<div><p><span>p3 1</span> <span selected>p3 2</span> <span>p3 3</span></p></div>
+</div>
+
 <div class="empty"></div>
 <div id="prevnext">
 previousSibling

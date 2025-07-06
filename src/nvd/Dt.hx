@@ -72,16 +72,26 @@ DOM Tools
 }
 
 /*
- * lookup(elem, [1, 2, 3]) => elem.children[1].children[2].children[3]
+ * `lookup(elem, 1, 2, 3)` is similar to `elem.children[1].children[2].children[3]`
  */
-@:native("__hcdr") function lookup( node : DOMElement, path : Array<Int> ) : DOMElement {
-	for (p in path) {
-		node = cast node.firstChild;
-		var i = 0;
+#if (js_es < 6)
+@:native("__hcr") function lookup( node : js.html.Node ) : Any {
+	// js-es5 will generate ugly haxe.Rest code
+	var path : Array<Int> = js.Syntax.code("arguments");
+	var i = 1;
+#else
+@:native("__hcr") function lookup( node : js.html.Node, path : haxe.Rest<Int> ) : Any {
+	var i = 0;
+#end
+	var n = path.length;
+	while (i < n) {
+		node = node.firstChild;
+		var s = path[i++];
+		var t = 0;
 		while ( (node : Dynamic) ) {
-			if (node.nodeType == js.html.Node.ELEMENT_NODE && p == i++)
+			if (node.nodeType == js.html.Node.ELEMENT_NODE && s == t++)
 				break;
-			node = cast node.nextSibling;
+			node = node.nextSibling;
 		}
 	}
 	return node;

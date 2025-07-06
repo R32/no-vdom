@@ -103,15 +103,25 @@ class Macros {
 				kind : FVar(null, macro $v{ comp.selector })
 			});
 		}
+		var js_es6 = Std.parseInt(Context.definedValue("js_es")) > 5;
 		for (k in aobj.bindings.keys()) {
 			var item = aobj.bindings.get(k);
 			var aname = item.name;
 			var edom  = if (item.keepCSS && item.markup.css != null) {
 				macro cast dom.querySelector($v{item.markup.css});
 			} else {
-				item.markup.path.length < 2
-				? htmlChildren(item.markup.path, item.markup.pos)
-				: macro @:privateAccess cast this.lookup( $v{ item.markup.path } );
+				if (item.markup.path.length < 2) {
+					htmlChildren(item.markup.path, item.markup.pos);
+				} else {
+					var args : Array<Expr> = [macro this];
+					for (i in item.markup.path)
+						args.push({expr : EConst(CInt(i + "")), pos : item.markup.pos});
+					if (js_es6) {
+						macro nvd.Dt.lookup($a{ args });
+					} else {
+						macro (nvd.Dt.lookup : haxe.Constraints.Function)($a{ args });
+					}
+				}
 			}
 			var edom = {
 				expr: ECheckType(edom, item.markup.ctype),

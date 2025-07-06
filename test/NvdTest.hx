@@ -35,7 +35,7 @@ class NvdTest {
 		document.body.appendChild(ul);
 
 		var css = "body { margin : 0; }";
-		var style = HXX( <style name="abc" class="xyz">{{ css }}</style> );
+		var style = HXX( <style class="xyz">{{ css }}</style> );
 		document.head.appendChild(style);
 	}
 
@@ -73,12 +73,27 @@ class NvdTest {
 			lyricsIndex = (lyricsIndex + 1) % lyrics.length;
 			testSVG.text = lyrics[lyricsIndex];
 		}
+
+		var text = Depth.ofSelector(".depth").selected;
+		trace(text, text == "p3 2");
 	}
 
 	static function main() {
+		var text = "Click here";
+		var a = HXX(<a id = "linkid" style="color : {{ color }}">{{ text }}</a>);
+		document.body.appendChild(a);
+
+		var title = "hi there";
+		var content = "click here";
+		var div = HXX(<div><a title="{{ title }}"> LL {{ content }} RR </a></div>);
+		document.body.appendChild(div);
+
 		test_markup();
 		test_comp();
 	}
+
+	static inline var RED = "red";
+	static inline var color = RED;
 }
 
 @:build(Nvd.build("bin/index.html", "div.flex-table", {
@@ -99,7 +114,7 @@ class NvdTest {
 	text:    $("p").innerText, // text is custom property
 	title:   $("a").attr.title,
 	cls:     $("a").className,
-	x:       $("").offsetLeft,
+	x:       $(null).offsetLeft,
 	y:       $("").offsetTop,
 	textNode: $("a").previousSibling,
 })) abstract Bar(nvd.Comp) {
@@ -114,6 +129,13 @@ class NvdTest {
 		this = cast dom;
 	}
 }
+
+
+@:build(Nvd.build("bin/index.html", ".depth", {
+	selected : $("[selected]").innerText,
+})) extern abstract Depth(nvd.Comp) {
+}
+
 
 // buildString
 @:build(Nvd.buildString(
